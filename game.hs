@@ -9,16 +9,19 @@
 --
 import Graphics.Gloss
 
+
+
 main 	
  = display 
         (InWindow
-	       "Hello World" 	 -- window title
-		(400, 150) 	 -- window size
-		(10, 10)) 	 -- window position
-	white			 -- background color
+	       "Bacteria" 	 -- window title
+		(800, 600) 	 -- window size
+		(400, 200)) 	 -- window position
+	black			 -- background color
 	picture			 -- picture to display
 
 picture	
-	= Translate (-170) (-20) -- shift the text to the middle of the window
-	$ Scale 0.5 0.5		 -- display it half the original size
-	$ Text "Hello World"	 -- text to display
+	= Translate (0) (0) -- shift the text to the middle of the window
+	$ Scale 1 1
+	$ Color white
+	$ Polygon (rectanglePath 5 5)
