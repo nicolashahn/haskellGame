@@ -1,33 +1,29 @@
+-- grid.hs
 -- prints grid to display
---
+
 import Graphics.Gloss
 import Math.Geometry.Grid
 import Math.Geometry.Grid.Square
 
-gLength = 30 -- length of grid
+gLength = 25 -- length of grid
 gSize = gLength * gLength
 grid = rectSquareGrid gLength gLength
 gCoors = indices grid
 
-
 -- converts Grid coordinates to pixel coordinates for printing purposes
-coorsToPixels [] = []
-coorsToPixels coors = (fromIntegral(fst headCoor * gLength), fromIntegral(snd headCoor * gLength)) : coorsToPixels (tail coors)
-        where headCoor = head coors
- 
+coorsToPixels coors = map (\(x, y) -> (convert x, convert y)) coors
+    where convert a = fromIntegral(a * gLength)
+
 -- list of pixel coordinates
 gPixelCoors = coorsToPixels gCoors
 
 -- take in a list of pixel coordinates for a grid and creates a list of alternating colored squares
-gPicture []  = []
-gPicture coors = (translate fHead sHead $ color col $ rectangleSolid (fromIntegral(gLength)) (fromIntegral(gLength))) : gPicture (tail coors)
-        where fHead = adj $ fst $ head coors
-              sHead = adj $ snd $ head coors
-              -- adj coor: adjusts print coordinates to account for center origin, converts to float 
-              adj coor = fromIntegral(coor - (gSize `div` 2 - gLength `div` 2))
-              isEven n = ceiling n `div` gLength `mod` 2 == 0
-              col = if (isEven fHead && isEven sHead) || ((not (isEven fHead)) && not (isEven sHead)) then blue else azure
+gPicture coors = map (\(x, y) -> translate (adj x) (adj y) $ color (col (adj x)  (adj y)) $ rectangleSolid (fromIntegral (gLength)) (fromIntegral(gLength))) coors
+    where adj a = fromIntegral(a - (gSize `div` 2 - gLength `div` 2)) -- adjust print coordinates to account for center origin; convert to float
+          isEven n = ceiling n `div` gLength `mod` 2 == 0
+          col x y = if (isEven x && isEven y) || ((not (isEven x)) && not (isEven y)) then blue else cyan
 
+-- convert list of pictures to single picture
 printPic = pictures (gPicture gPixelCoors)
 
 main 	
