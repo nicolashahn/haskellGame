@@ -89,10 +89,10 @@ simulateBoard _ GameOver = GameOver
 
 simulateBoard timeStep (Play cells)
     | length cells >= 5 = GameOver
-    | otherwise = Play (Cell 1 (-9, -11) red : (concatMap updateCell cells))
+    | otherwise = Play (Cell 1 (0, 0) red : (concatMap updateCell cells))
     where
         updateCell :: Cell -> [Cell]
-        updateCell c@(Cell b pos col) = [Cell (b + 1) ((fst pos + 25), snd pos) col]
+        updateCell c@(Cell p pos col) = [Cell (p + 1) ((fst pos + 1), snd pos) col]
 
 ----------------------------------------------------------
 main 	
