@@ -11,15 +11,16 @@ data Board = Play [Cell]
           | GameOver
           deriving (Eq, Show)
 
-type Bacteria = Int
+type Population = Int
 type Position = (Float, Float)
+type Colony = Color
 
-data Cell = Cell Bacteria Position
+data Cell = Cell Population Position Color
     deriving (Eq, Show)
 
 initialBoard :: Board
 initialBoard = Play
-            [ Cell 1 (0.0, 0.0) ] -- Default bacteria
+            [ Cell 1 (0.0, 0.0) red ] -- Default Population
 
 drawBoard :: Board -> Picture
 drawBoard GameOver
@@ -31,8 +32,8 @@ drawBoard GameOver
 drawBoard (Play cells) 
     = pictures [printPic, colony]
     where
-    colony = pictures [translate x y (color black (scale 0.2 0.2 $ text (show n)))
-                      | Cell n (x, y) <- cells]
+    colony = pictures [translate x y (color col (scale 0.2 0.2 $ text (show n)))
+                      | Cell n (x, y) col <- cells]
 
 -----------------------------------------------------------
 -- print grid
@@ -69,10 +70,10 @@ simulateBoard _ GameOver = GameOver
 
 simulateBoard timeStep (Play cells)
     | length cells >= 5 = GameOver
-    | otherwise = Play (Cell 1 (-9.0, -11.0) : (concatMap updateCell cells))
+    | otherwise = Play (Cell 1 (-9.0, -11.0) red : (concatMap updateCell cells))
     where
         updateCell :: Cell -> [Cell]
-        updateCell c@(Cell b pos) = [Cell (b + 1) ((fst pos + 25), snd pos)]
+        updateCell c@(Cell b pos col) = [Cell (b + 1) ((fst pos + 25), snd pos) col]
 
 ----------------------------------------------------------
 main 	
