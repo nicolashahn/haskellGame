@@ -31,10 +31,12 @@ enemyCoords = [(49,49,3),(49,48,4),(48,49,3),(48,48,4)]
 
 foodCoords = [(20,20,0), (38,10,0), (21,30,0)]
 
+
 -- Make coordinates correct bc gloss sets origin at center
 getX :: (Float, Float, Int) -> Float
 getX (x,_,_) = (cellSize * x) - ((fromIntegral winSize) / 2) + (cellSize / 2)
 getY (_,y,_) = (cellSize * y) - ((fromIntegral winSize) / 2) + (cellSize / 2)
+
 
 -- get third element of tuple
 thd :: (a, b, c) -> c
