@@ -6,6 +6,7 @@ import Graphics.Gloss.Interface.IO.Game
 import Math.Geometry.Grid
 import Math.Geometry.Grid.Square
 import System.Random
+import Data.List
 
 -- state of the game
 data Board = Play [Cell] 
@@ -92,30 +93,30 @@ printPic = pictures (gPicture gPixelCoors)
 probGrowth = 0.5
 
 playerCells :: [Cell]
-playerCells = [Cell 1 (0,0) blue]
+playerCells = [Cell 1 (1,1) blue]
 enemyCells :: [Cell]
-enemyCells = [Cell 1 (gLength, gLength) red]
+enemyCells = [Cell 1 (gLength-1, gLength-1) red]
 foodCells :: [Cell]
 foodCells = [Cell 1 (5,5) green]
 
 playerPos :: [Position]
-playerPos = map cellXY playerCells
+playerPos = map cellPos playerCells
 enemyPos :: [Position]
-enemyPos = map cellXY enemyCells
+enemyPos = map cellPos enemyCells
 foodPos :: [Position]
-foodPos = map cellXY foodCells
+foodPos = map cellPos foodCells
 
 -- all cells that have something in them
 filledCells :: [Position]
-filledCells = playerPos ++ enemyPos ++ foodPos
+filledCells = playerPos ++ enemyPos
 
 -- just to get a cell's population
 cellPop :: Cell -> Int
 cellPop (Cell p _ _) = p
 
 -- get cell's position
-cellXY :: Cell -> (Int, Int)
-cellXY (Cell _ xy _) = xy
+cellPos :: Cell -> (Int, Int)
+cellPos (Cell _ xy _) = xy
 
 
 -- uses probGrowth to increment population by 0 or 1
@@ -137,23 +138,38 @@ updateCells [] = []
 updateCells xs = map upCellPop xs
 
 
-{- this is so damn broken
+{--this is so damn broken
 
--- checks a list of bacteria's populations
+-- checks a list of bacteria, uses population and positions
 -- returns a list of possible empty cells to spawn a new bacteria
-spawnCells :: [Cell] -> [Position]
-spawnCells [] = []
-spawnCells cs = filter (elem filledCells x) x
+borderCells :: [Cell] -> [Position]
+borderCells [] = []
+borderCells cs = filter (elem filledCells) adj
                 where 
-                    x = (
-                        map (neighbours theGrid) (
-                            map cellXY (
+                    adj = (
+                        map (neighbours theGrid)) (
+                            map cellPos (
                                 filter (cellPop >= 5) cs)
                             )
                         )
-
 -}
 
+
+--takes list of cell positions
+--returns list of adjacent positions
+adjCells :: [Position] -> [Position]
+adjCells [] = []
+adjCells ps = nub (foldl (\a p -> a ++ (neighbours theGrid p)) [] ps)
+
+
+-- checks a list of bacteria, uses population and positions
+-- returns a list of possible empty cells to spawn a new bacteria
+borderCells :: [Position] -> [Position]
+borderCells [] = []
+borderCells ps = adjCells ps \\ filledCells
+
+
+--
 
 
 
