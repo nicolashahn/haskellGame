@@ -99,16 +99,17 @@ enemyCells = [Cell 1 (gLength-1, gLength-1) red]
 foodCells :: [Cell]
 foodCells = [Cell 1 (5,5) green]
 
-playerPos :: [Position]
-playerPos = map cellPos playerCells
+playerPos :: [Cell] -> [Position]
+playerPos cells = map cellPos cells
+
 enemyPos :: [Position]
 enemyPos = map cellPos enemyCells
 foodPos :: [Position]
 foodPos = map cellPos foodCells
 
 -- all cells that have something in them
-filledCells :: [Position]
-filledCells = playerPos ++ enemyPos
+-- filledCells :: [Position]
+-- filledCells = playerPos ++ enemyPos
 
 -- just to get a cell's population
 cellPop :: Cell -> Int
@@ -125,35 +126,25 @@ cellPos (Cell _ xy _) = xy
 
 --above is broken for now
 
--- updates one bacterium's population
+-- updates population of one cell
 upCellPop :: Cell -> Cell
-upCellPop (Cell pop xy col) = if pop < 10  
+upCellPop c@(Cell pop xy col) = if pop < 3  
                                 -- replace this 1 with a randZeroOne when it works
                                 then (Cell (pop + (1)) xy col)
-                                else (Cell pop xy col)
+                                else c
+
+growCells :: [Cell] -> [Cell]
+growCells cells = combine borderPos ++ cells 
+    where borderPos = borderCells (playerPos cells)
+
+combine :: [Position] -> [Cell]
+combine [] = []
+combine borderPos = (Cell 1 (head borderPos) red) : (combine $ tail borderPos)
 
 -- update list of bacteria's population
 updateCells :: [Cell] -> [Cell]
 updateCells [] = []
 updateCells xs = map upCellPop xs
-
-
-{--this is so damn broken
-
--- checks a list of bacteria, uses population and positions
--- returns a list of possible empty cells to spawn a new bacteria
-borderCells :: [Cell] -> [Position]
-borderCells [] = []
-borderCells cs = filter (elem filledCells) adj
-                where 
-                    adj = (
-                        map (neighbours theGrid)) (
-                            map cellPos (
-                                filter (cellPop >= 5) cs)
-                            )
-                        )
--}
-
 
 --takes list of cell positions
 --returns list of adjacent positions
@@ -161,19 +152,13 @@ adjCells :: [Position] -> [Position]
 adjCells [] = []
 adjCells ps = nub (foldl (\a p -> a ++ (neighbours theGrid p)) [] ps)
 
-
 -- checks a list of bacteria, uses population and positions
 -- returns a list of possible empty cells to spawn a new bacteria
 borderCells :: [Position] -> [Position]
 borderCells [] = []
 borderCells ps = adjCells ps \\ filledCells
-
-
---
-
-
-
-
+-- test, remove later
+    where filledCells = ps
 
 -- take a previous game state and return the new game state after given time
 simulateBoard :: Float -> (Board -> Board)
@@ -181,11 +166,8 @@ simulateBoard :: Float -> (Board -> Board)
 simulateBoard _ GameOver = GameOver
 
 simulateBoard timeStep (Play cells)
-    | length cells >= 5 = GameOver
-    | otherwise = Play (Cell 1 (0, 0) red : (concatMap updateCell cells))
-    where
-        updateCell :: Cell -> [Cell]
-        updateCell c@(Cell p pos col) = [Cell (p + 1) ((fst pos + 1), snd pos) col]
+    | length cells >= 20 = GameOver
+    | otherwise = Play (growCells $ updateCells cells)
 
 ----------------------------------------------------------
 main 	
