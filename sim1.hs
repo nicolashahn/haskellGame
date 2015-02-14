@@ -197,8 +197,9 @@ updateCells (c:cs) = spawnCell col (upCellsPop (c:cs))
 -- random stuff
 -------------------------------------
 
-getRand = do
-    gen <- getStdGen
+--getRand = do
+--    gen <- getStdGen
+--    randZeroOne gen
 
 
 
