@@ -133,15 +133,10 @@ cellCol (Cell _ _ c) = c
 
 -- updates population of one cell
 upCellPop :: Cell -> Cell
-<<<<<<< HEAD
 upCellPop (Cell pop xy col) = if pop < 9  
                                 -- replace the 1 below with a randZeroOne when it works
-=======
-upCellPop c@(Cell pop xy col) = if pop < 3  
-                                -- replace this 1 with a randZeroOne when it works
->>>>>>> origin/master
                                 then (Cell (pop + (1)) xy col)
-                                else c
+                                else (Cell pop xy col)
 
 growCells :: [Cell] -> [Cell]
 growCells cells = combine borderPos ++ cells 
@@ -167,7 +162,6 @@ adjCells ps = nub (foldl (\a p -> a ++ (neighbours theGrid p)) [] ps)
 borderCells :: [Position] -> [Position]
 borderCells [] = []
 borderCells ps = adjCells ps \\ filledCells
-<<<<<<< HEAD
 
 -- currently does NOT get a random element
 -- gets the middle element from a list
@@ -198,29 +192,15 @@ updateCells (c:cs) = spawnCell col (upCellsPop (c:cs))
 --    randZeroOne gen
 
 
-
-
-
-=======
--- test, remove later
-    where filledCells = ps
->>>>>>> origin/master
-
 -- take a previous game state and return the new game state after given time
 simulateBoard :: Float -> (Board -> Board)
 
 simulateBoard _ GameOver = GameOver
 
 simulateBoard timeStep (Play cells)
-<<<<<<< HEAD
-    -- if the entire screen if filled up then game over
-    | length filledCells >= (gLength*gLength) = GameOver
-    | otherwise = Play (Cell 1 (0, 0) red : (updateCells cells))
-
-=======
     | length cells >= 20 = GameOver
     | otherwise = Play (growCells $ updateCells cells)
->>>>>>> origin/master
+
 
 ----------------------------------------------------------
 main 	
