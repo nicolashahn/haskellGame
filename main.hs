@@ -82,13 +82,13 @@ borderCells [] __ = []
 borderCells ps filledCells = adjCells ps \\ filledCells
 
 -- combines new cells
-combine :: [Position] -> [Cell]
-combine [] = []
-combine borderPos = (Cell 1 (head borderPos) red) : (combine $ tail borderPos)
+combine :: [Position] -> Color -> [Cell]
+combine [] _ = []
+combine borderPos col = (Cell 1 (head borderPos) col) : combine (tail borderPos) col
 
 -- increases size of colony
 growColony :: [Cell] -> [Cell] -> [Cell]
-growColony c1 c2 = combine (borderPos c1 c2) ++ c1
+growColony c1 c2 = combine (borderPos c1 c2) (cellCol $ head c1) ++ c1
     where borderPos c1 c2 = borderCells (colonyPos c1) (colonyPos c1 ++ colonyPos c2)
 
 -- updates population of one cell 
@@ -108,6 +108,8 @@ simulateBoard :: Float -> (Board -> Board)
 simulateBoard _ GameOver = GameOver
 simulateBoard timeStep (Play cellsP cellsE)
     | length cellsP >= 50 = GameOver
+    | length cellsP == 0 = GameOver
+    | length cellsE == 0 = GameOver
     | otherwise = Play (fullUpdate cellsP cellsE) (fullUpdate cellsE cellsP)
         where
             fullUpdate c1 c2 = growColony (updateCells c1) c2
@@ -158,6 +160,10 @@ showNum i x y
 -- Returns list of positions for colony
 colonyPos :: [Cell] -> [Position]
 colonyPos cells = map cellPos cells
+
+-- get cell's color
+cellCol :: Cell -> Color
+cellCol (Cell _ _ col) = col
 
  -- get cell's position
 cellPos :: Cell -> (Int, Int)
