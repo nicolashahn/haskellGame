@@ -5,6 +5,9 @@ import Graphics.Gloss
 import Graphics.Gloss.Interface.IO.Game
 import Math.Geometry.Grid
 import Math.Geometry.Grid.Square
+--import Data.Random
+--import Data.Random.Source.DevRandom
+--import Data.Random.Extras
 import System.Random
 import Data.List
 
@@ -88,7 +91,6 @@ printPic = pictures (gPicture gPixelCoors)
 ----------------------------------------------------------
 
 
-
 -- probability that a bacteria will grow
 probGrowth = 0.5
 
@@ -119,17 +121,25 @@ cellPop (Cell p _ _) = p
 cellPos :: Cell -> (Int, Int)
 cellPos (Cell _ xy _) = xy
 
+cellCol :: Cell -> Color
+cellCol (Cell _ _ c) = c
+
 
 -- uses probGrowth to increment population by 0 or 1
---randZeroOne :: RandomGen -> Int
+--randZeroOne :: RandomGen g => g -> Int
 --randZeroOne x = if (fst (randomR (0,1) x) ) <= probGrowth then 0 else 1
 
 --above is broken for now
 
 -- updates population of one cell
 upCellPop :: Cell -> Cell
+<<<<<<< HEAD
+upCellPop (Cell pop xy col) = if pop < 9  
+                                -- replace the 1 below with a randZeroOne when it works
+=======
 upCellPop c@(Cell pop xy col) = if pop < 3  
                                 -- replace this 1 with a randZeroOne when it works
+>>>>>>> origin/master
                                 then (Cell (pop + (1)) xy col)
                                 else c
 
@@ -142,9 +152,9 @@ combine [] = []
 combine borderPos = (Cell 1 (head borderPos) red) : (combine $ tail borderPos)
 
 -- update list of bacteria's population
-updateCells :: [Cell] -> [Cell]
-updateCells [] = []
-updateCells xs = map upCellPop xs
+upCellsPop :: [Cell] -> [Cell]
+upCellsPop [] = []
+upCellsPop xs = map upCellPop xs
 
 --takes list of cell positions
 --returns list of adjacent positions
@@ -157,8 +167,44 @@ adjCells ps = nub (foldl (\a p -> a ++ (neighbours theGrid p)) [] ps)
 borderCells :: [Position] -> [Position]
 borderCells [] = []
 borderCells ps = adjCells ps \\ filledCells
+<<<<<<< HEAD
+
+-- currently does NOT get a random element
+-- gets the middle element from a list
+randElem :: [a] -> a
+--randElem [] = Nothing
+randElem cs = (cs !! (div (length cs) 2))
+
+
+-- spawn one cell using a random empty border cell
+-- pass it in one team's bacteria, gives the same list + 1 more bacteria
+spawnCell :: Color -> [Cell] -> [Cell]
+spawnCell _ [] = []
+spawnCell col cs = (Cell 1 (randElem (borderCells (map cellPos cs))) col):cs
+
+
+
+updateCells :: [Cell] -> [Cell]
+updateCells [] = []
+updateCells (c:cs) = spawnCell col (upCellsPop (c:cs))
+            where col = cellCol c
+
+-------------------------------------
+-- random stuff
+-------------------------------------
+
+--getRand = do
+--    gen <- getStdGen
+--    randZeroOne gen
+
+
+
+
+
+=======
 -- test, remove later
     where filledCells = ps
+>>>>>>> origin/master
 
 -- take a previous game state and return the new game state after given time
 simulateBoard :: Float -> (Board -> Board)
@@ -166,8 +212,15 @@ simulateBoard :: Float -> (Board -> Board)
 simulateBoard _ GameOver = GameOver
 
 simulateBoard timeStep (Play cells)
+<<<<<<< HEAD
+    -- if the entire screen if filled up then game over
+    | length filledCells >= (gLength*gLength) = GameOver
+    | otherwise = Play (Cell 1 (0, 0) red : (updateCells cells))
+
+=======
     | length cells >= 20 = GameOver
     | otherwise = Play (growCells $ updateCells cells)
+>>>>>>> origin/master
 
 ----------------------------------------------------------
 main 	
@@ -177,7 +230,7 @@ main
 		(winSize, winSize) 	 -- window size
 		(0, 0)) 	 -- window positioned in center
 	white			 -- background color
-    1
+    20
     initialBoard
     drawBoard
     (\view -> simulateBoard)
