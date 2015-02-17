@@ -6,6 +6,7 @@ import Graphics.Gloss.Interface.IO.Game
 import Math.Geometry.Grid
 import Math.Geometry.Grid.Square
 import Data.List
+import System.Random
 
 ------------------------------------------------------------------------------
 -- Initialization --
@@ -26,9 +27,9 @@ winFloat = fromIntegral winSize
 
 grid = rectSquareGrid gridLength gridLength
 
-data Board = Play Player Enemy 
+data Board = Play Player Enemy StdGen 
           | GameOver
-          deriving (Eq, Show)
+          deriving (Show)
 
 type Bacteria = Int
 type Position = (Int, Int)
@@ -38,10 +39,11 @@ type Enemy = [Cell]
 data Cell = Cell Bacteria Position Color
     deriving (Eq, Show)
 
-initialBoard :: Board
-initialBoard = Play
+initialBoard :: StdGen -> Board 
+initialBoard gen = Play
             [Cell 1 (gridLength `div` 4, gridLength `div` 2) green] 
             [Cell 1 (gridLength - (gridLength `div` 4), gridLength `div` 2) yellow]
+            gen
 
 ------------------------------------------------------------------------------
 -- Game state --
@@ -58,7 +60,7 @@ drawBoard GameOver
     $ color red
     $ text  "GAME OVER"
 
-drawBoard (Play cellsP cellsE) 
+drawBoard (Play cellsP cellsE gen) 
     = pictures [printGrid, drawColony cellsP, drawColony cellsE]
         where
         printGrid = pictures (gridSquares $ indices grid)
@@ -68,7 +70,7 @@ drawBoard (Play cellsP cellsE)
 ------------------------------------------------------------------------------
 
 -- probability that bacteria will grow
-probGrowth = 0.5
+-- probGrowth = 1
 
 -- takes list of cell positions
 -- returns list of adjacent positions
@@ -93,7 +95,7 @@ growColony c1 c2 = combine (borderPos c1 c2) (cellCol $ head c1) ++ c1
 
 -- updates population of one cell 
 upCellPop :: Cell -> Cell
-upCellPop c@(Cell pop xy col) = if pop < 3
+upCellPop c@(Cell pop xy col) = if pop < 10
                               -- replace this 1 with a randZeroOne when it works
                               then (Cell (pop + (1)) xy col)
                               else c
@@ -106,23 +108,32 @@ updateCells cells = map upCellPop cells
 -- take a previous game state and return the new game state after given time
 simulateBoard :: Float -> (Board -> Board)
 simulateBoard _ GameOver = GameOver
-simulateBoard timeStep (Play cellsP cellsE)
-    | length cellsP >= 50 = GameOver
-    | length cellsP == 0 = GameOver
-    | length cellsE == 0 = GameOver
-    | otherwise = Play (fullUpdate cellsP cellsE) (fullUpdate cellsE cellsP)
-        where
-            fullUpdate c1 c2 = growColony (updateCells c1) c2
+simulateBoard timeStep (Play cellsP cellsE gen)
+    | length cellsP >= 200 = GameOver
+    | otherwise = Play (fullUpdate cellsP cellsE) (fullUpdate cellsE cellsP) newGen
+    where
+        (probGrowth, newGen) = randomR(1, 2) gen :: (Int, StdGen)
+        fullUpdate c1 c2 
+            | probGrowth == 1 = growColony (updateCells c1) c2
+            | otherwise = updateCells c1
+    -- = let   (probGrowth, newGen) = randomR(1, 2) gen :: (Int, StdGen)
+    --   in    Play (fullUpdate cellsP cellsE) (fullUpdate cellsE cellsP) newGen
+    --     where
+    --         fullUpdate c1 c2 
+    --             | probGrowth == 1 = growColony (updateCells c1) c2
+    --             | otherwise = updateCells c1
+    --
+
 
 ------------------------------------------------------------------------------
 -- Event handling --
 ------------------------------------------------------------------------------
 handleEvents :: Event -> Board -> Board
 handleEvents _ GameOver = GameOver
-handleEvents (EventKey (MouseButton LeftButton) Down _ _) 
-             (Play cellsP cellsE)
+handleEvents (EventKey (MouseButton LeftButton) Down _ _)
+             (Play cellsP cellsE gen)
     | length cellsP >= 20 = GameOver
-    | otherwise = Play (Cell 1 (0, 0) blue : (concatMap updateCell cellsP)) (Cell 1 (0, 10) yellow : concatMap updateCell cellsE)
+    | otherwise = Play (Cell 1 (0, 0) blue : (concatMap updateCell cellsP)) (Cell 1 (0, 10) yellow : concatMap updateCell cellsE) gen
     where
         updateCell :: Cell -> [Cell]
         updateCell c@(Cell b pos col) = [Cell (b + 1) ((fst pos + 1), snd pos) col]
@@ -176,15 +187,12 @@ cellPop (Cell p _ _) = p
 ------------------------------------------------------------------------------
 -- Main --
 ------------------------------------------------------------------------------
-main 	
- = play 
-        (InWindow
-	     "Grid" 	 -- window title
-		(winSize, winSize) 	 -- window size
-		(0, 0)) 	 -- window positioned in center
-	white			 -- background color
-    1
-    initialBoard
-    drawBoard
-    handleEvents
-    simulateBoard
+main
+ = do   gen <- getStdGen
+        play (InWindow "Grid" (winSize, winSize) (0, 0)) 	 -- window positioned in center
+             white
+             1
+             (initialBoard gen)
+             drawBoard
+             handleEvents
+             simulateBoard
