@@ -101,8 +101,8 @@ enemyCells = [Cell 1 (gLength-1, gLength-1) red]
 foodCells :: [Cell]
 foodCells = [Cell 1 (5,5) green]
 
-playerPos :: [Cell] -> [Position]
-playerPos cells = map cellPos cells
+cellsPos :: [Cell] -> [Position]
+cellsPos cells = map cellPos cells
 
 enemyPos :: [Position]
 enemyPos = map cellPos enemyCells
@@ -111,7 +111,7 @@ foodPos = map cellPos foodCells
 
 -- all cells that have something in them
 -- filledCells :: [Position]
--- filledCells = playerPos ++ enemyPos
+-- filledCells = cellsPos ++ enemyPos
 
 -- just to get a cell's population
 cellPop :: Cell -> Int
@@ -140,7 +140,7 @@ upCellPop (Cell pop xy col) = if pop < 9
 
 growCells :: [Cell] -> [Cell]
 growCells cells = combine borderPos ++ cells 
-    where borderPos = borderCells (playerPos cells)
+    where borderPos = borderCells (cellsPos cells)
 
 combine :: [Position] -> [Cell]
 combine [] = []
@@ -161,7 +161,7 @@ adjCells ps = nub (foldl (\a p -> a ++ (neighbours theGrid p)) [] ps)
 -- returns a list of possible empty cells to spawn a new bacteria
 borderCells :: [Position] -> [Position]
 borderCells [] = []
-borderCells ps = adjCells ps \\ filledCells
+borderCells ps = adjCells ps \\ ((cellsPos playerCells) ++ (cellsPos enemyCells))
 
 -- currently does NOT get a random element
 -- gets the middle element from a list
