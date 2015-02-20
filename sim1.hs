@@ -127,8 +127,8 @@ cellCol (Cell _ _ c) = c
 
 
 -- uses probGrowth to increment population by 0 or 1
---randZeroOne :: RandomGen g => g -> Int
---randZeroOne x = if (fst (randomR (0,1) x) ) <= probGrowth then 0 else 1
+randZeroOne :: RandomGen g => g -> Int
+randZeroOne x = if (fst (randomR (0,1) x) ) <= probGrowth then 0 else 1
 
 --above is broken for now
 
@@ -166,7 +166,7 @@ borderCells cs = filter (elem filledCells) adj
 --returns list of adjacent positions
 adjCells :: [Position] -> [Position]
 adjCells [] = []
-adjCells ps = nub (foldl (\a p -> a ++ (neighbours theGrid p)) [] ps)
+adjCells ps = (foldl (\a p -> a ++ (neighbours theGrid p)) [] ps)
 
 
 -- checks a list of bacteria, uses population and positions

@@ -83,14 +83,19 @@ adjCells ps = (foldl (\a p -> a ++ (map (\x -> (x,p)) (neighbours grid p))) [] p
 --borderCells [] __ = []
 --borderCells ps filledCells = adjCells ps \\ filledCells
 
+
+-- 
 dropFst :: [(Position,Position)] -> [Position] -> [(Position,Position)]
 dropFst [] _ = []
 dropFst _ [] = []
-dropFst (c:cs) (f:fs) = if (snd c) == f then c:(dropFst cs fs)
+dropFst (c:cs) fs = if (elem (snd c) fs) then c:(dropFst cs fs)
 										else (dropFst cs fs)
---dropIt cs fs = filter (== snd)
 
--- takes two colonies and removes 
+-- takes colony c1 and c2
+-- finds all the adjacent positions to c1
+-- remove from the list all the positions that are already taken by c1 or c2
+-- return a list of both the empty border positions
+-- and the position of the cell it was adjacent to (the cell that can spawn a new cell)
 borderPos :: [Cell] -> [Cell] -> [(Position,Position)]
 borderPos c1 c2 = dropFst (adjCells (colonyPos c1)) filledCells
 							where filledCells = (colonyPos c1 ++ colonyPos c2)
