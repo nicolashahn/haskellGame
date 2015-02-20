@@ -14,10 +14,10 @@ import System.Random.Shuffle
 ------------------------------------------------------------------------------
 
 gridLength :: Int
-gridLength = 40 -- length of grid
+gridLength = 30 -- length of grid
 
 cellSize :: Int
-cellSize = 20 -- cell's pixel height/width
+cellSize = 25 -- cell's pixel height/width
 cellFloat :: Float
 cellFloat = fromIntegral cellSize
 
@@ -64,7 +64,7 @@ drawColony cells = pictures [makeSquare x y col <> showNum n x y
 drawBoard :: Board -> Picture
 drawBoard (GameOver t)
     = scale 0.3 0.3
-    $ translate (-winFloat/2 ) (0.0)
+    $ translate (-winFloat + 50 ) (0.0)
     $ color red
     $ text t
 
@@ -101,7 +101,8 @@ pickSpawns [] _ _ = []
 pickSpawns (p:ps) (b:bs) gen 
     = spawnPos : pickSpawns ps bs newGen
     where
-        (spawnPos, newGen) = randPos (shuffle' p (length p) gen) b gen
+        (spawnPos, newGen) = if (length p) > 0 then randPos (shuffle' p (length p) gen) b gen
+                                                else randPos [] b gen
 
 
 
