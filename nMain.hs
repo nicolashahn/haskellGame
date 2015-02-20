@@ -69,26 +69,17 @@ drawBoard (Play cellsP cellsE gen)
 -- Simulation --
 ------------------------------------------------------------------------------
 
--- probability that bacteria will grow
--- probGrowth = 1
-
 -- takes list of cell positions
 -- returns list of adjacent positions
 adjCells :: [Position] -> [(Position,Position)]
 adjCells [] = []
 adjCells ps = (foldl (\a p -> a ++ (map (\x -> (x,p)) (neighbours grid p))) [] ps)
 
--- returns positions of empty cells around border of clony
---borderCells :: [Position] -> [Position] -> [Position]
---borderCells [] __ = []
---borderCells ps filledCells = adjCells ps \\ filledCells
-
 dropFst :: [(Position,Position)] -> [Position] -> [(Position,Position)]
 dropFst [] _ = []
 dropFst _ [] = []
 dropFst (c:cs) (f:fs) = if (snd c) == f then c:(dropFst cs fs)
 										else (dropFst cs fs)
---dropIt cs fs = filter (== snd)
 
 -- takes two colonies and removes 
 borderPos :: [Cell] -> [Cell] -> [(Position,Position)]
@@ -116,9 +107,6 @@ upCellPop c@(Cell pop xy col) = if pop < 10
 updateCells :: [Cell] -> [Cell]
 updateCells [] = []
 updateCells cells = map upCellPop cells
-
-
-
 
 -- take a previous game state and return the new game state after given time
 simulateBoard :: Float -> (Board -> Board)
