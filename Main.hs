@@ -7,6 +7,7 @@ import Math.Geometry.Grid
 import Math.Geometry.Grid.Square
 import Data.List
 import System.Random
+import System.Random.Shuffle
 
 ------------------------------------------------------------------------------
 -- Initialization --
@@ -93,14 +94,13 @@ grow (c@(Cell pop xy colr):cs) (Just p:ps) colrNew
 grow (c:cs) (Nothing:ps) colrNew
     = c : grow cs ps colrNew
 
--- TODO: shuffle list before checking
 -- pick position to spawn at every index
 pickSpawns :: [[Position]] -> [Bacteria] -> StdGen -> [Maybe Position]
 pickSpawns [] _ _ = []
 pickSpawns (p:ps) (b:bs) gen 
     = spawnPos : pickSpawns ps bs newGen
     where
-        (spawnPos, newGen) = randPos p b gen
+        (spawnPos, newGen) = randPos (shuffle' p (length p) gen) b gen
 
 -- list of list of places bacteria could spawn. each list within a list corresponds to an
 -- index in the colony that the bacteria would spawn from 
