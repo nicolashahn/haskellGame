@@ -150,11 +150,12 @@ simulateBoard timeStep (Play colonyP colonyE gen)
     | otherwise = Play 
                   (fullUpdate colonyP colonyE colorP genP) 
                   (fullUpdate colonyE colonyP colorE genE) 
+
                   genNew
     where
         (genThis, genNew) = split gen
         (genP, genE) = split genThis
-        fullUpdate c1 c2 colr g = growColony (updateCells c1) c2 colr g 
+        fullUpdate c1 c2 colr g = (growColony (updateCells c1) c2 colr g)
 
 ------------------------------------------------------------------------------
 -- Event handling --
