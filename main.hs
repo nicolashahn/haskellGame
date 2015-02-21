@@ -39,6 +39,8 @@ type Colony = [Cell]
 data Cell = Cell Bacteria Position Color
     deriving (Eq, Show)
 
+type Both = (Colony, Colony) 
+
 colorP = green :: Color
 colorE = red :: Color
 
@@ -111,21 +113,21 @@ pickSpawns (p:ps) (b:bs) gen
 spawnPotential :: Colony -> Colony -> [[Position]]
 spawnPotential c1 c2 = map (\\ filledCells) adjC 
     where filledCells = (colonyPos c1 ++ colonyPos c2)
-          adjC = adjCells (colonyPos c1)
+          adjC = adjPositions (colonyPos c1)
 
 
 -- list of list of all neighbors of colony's bacteria 
-adjCells :: [Position] -> [[Position]]
-adjCells [] = []
-adjCells ps = map (neighbours grid) ps
+adjPositions :: [Position] -> [[Position]]
+adjPositions [] = []
+adjPositions ps = map (neighbours grid) ps
 
 -- increases size of colony
 growColony :: Colony -> Colony -> Color -> StdGen -> Colony 
 growColony c1 c2 colr gen 
     = grow c1 chosenSpawns colr
     where 
-        chosenSpawns = pickSpawns (spawnPotential c1 c2) popList gen
-        popList = map cellPop c1
+        chosenSpawns = ( pickSpawns (spawnPotential c1 c2) popList gen )
+        popList = (map cellPop c1)
 --
 -- updates population of one cell 
 upCellPop :: Cell -> Cell
@@ -138,6 +140,62 @@ updateCells :: Colony -> Colony
 updateCells [] = []
 updateCells cells = map upCellPop cells
 
+
+----------------------------
+--  fighting
+----------------------------
+
+nullCell :: Cell
+nullCell = (Cell 99 (-1,-1) black)
+
+-- opposite of upCellPop
+-- decrement by 2 to cancel out upCellPop's +1
+decCellPop :: Cell -> Cell
+decCellPop (Cell pop xy col) = (Cell (pop-2) xy col)
+
+-- find the cell in the colony with the given position
+posToCell :: Colony -> Position -> Cell
+posToCell c p  = if (length x) > 0 then head x else nullCell
+                where x = ( filter (\x -> (cellPos x) == p) c )
+
+-- which cells in colony are neighbors of the given single cell
+adjCells :: Colony -> Cell -> [Cell]
+adjCells [] _ = []
+--adjCells col c = []
+adjCells col c = filter (\x -> not (x == nullCell)) (map (posToCell col) (neighbours grid (cellPos c)))
+ 
+
+-- returns first colony's cells that are adjacent to a cell in the second colony
+getFightCells :: Colony -> Colony -> Colony
+getFightCells [] _ = []
+getFightCells p [] = []
+--getFightCells p e = e
+getFightCells p e  = filter (\x -> elem x (adjCells p x)) e
+
+-- take list of ALL of one colony's cells, list of cells that are fighting
+-- returns list of all colony cells after being decremented/killing cells
+decCells :: Colony -> Colony -> Colony
+decCells [] _ = []
+decCells c [] = c
+--decCells c f = c
+decCells c f  = map decCellPop (filter (\x -> elem x f) c) ++ (c \\ f)
+
+-- remove all cells that have population <1
+killCells :: Colony -> Colony
+killCells [] = []
+killCells c = filter (\x -> (cellPop x) > 0) c
+
+-- takes player and enemy colonies and returns a tuple of both colonies
+-- decrement population and/or remove from colony (kill) cells that are fighting 
+-- (adjacent cells from differing colonies)
+fight :: Colony -> Colony -> (Colony, Colony)
+fight [] [] = ([],[])
+fight p [] = (p,[])
+fight [] e = ([],e)
+--fight p e = (p,e)
+--fight p e = ((decCells p e), (decCells e p))
+fight p e = (killCells (decCells p (getFightCells p e)), killCells (decCells e (getFightCells e p)))
+
 -- take a previous game state and return the new game state after given time
 simulateBoard :: Float -> (Board -> Board)
 simulateBoard _ (GameOver t) = (GameOver t)
@@ -148,11 +206,13 @@ simulateBoard timeStep (Play colonyP colonyE gen)
             else "Enemy Wins: " ++ (show (length colonyE)) ++ " cells"
         )
     | otherwise = Play 
-                  (fullUpdate colonyP colonyE colorP genP) 
-                  (fullUpdate colonyE colonyP colorE genE) 
-
+                  (fst f)
+                  (snd f)
+                  --(fullUpdate colonyP colonyE colorP genP)
+                  --(fullUpdate colonyE colonyP colorE genE)
                   genNew
     where
+        f = (fight (fullUpdate colonyP colonyE colorP genP) (fullUpdate colonyE colonyP colorE genE))
         (genThis, genNew) = split gen
         (genP, genE) = split genThis
         fullUpdate c1 c2 colr g = (growColony (updateCells c1) c2 colr g)
@@ -210,7 +270,7 @@ cellColor (Cell _ _ col) = col
 
  -- get cell's position
 cellPos :: Cell -> (Int, Int)
-cellPos (Cell _ xy  _) = xy
+cellPos (Cell _ xy _) = xy
 
 -- get cell's population
 cellPop :: Cell -> Int
