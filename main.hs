@@ -14,7 +14,7 @@ import System.Random.Shuffle
 ------------------------------------------------------------------------------
 
 gridLength :: Int
-gridLength = 30 -- length of grid
+gridLength = 15 -- length of grid
 
 cellSize :: Int
 cellSize = 25 -- cell's pixel height/width
@@ -145,40 +145,40 @@ updateCells cells = map upCellPop cells
 --  fighting
 ----------------------------
 
-nullCell :: Cell
-nullCell = (Cell 99 (-1,-1) black)
-
 -- opposite of upCellPop
--- decrement by 2 to cancel out upCellPop's +1
+-- color changes  for debug purposes
 decCellPop :: Cell -> Cell
-decCellPop (Cell pop xy col) = (Cell (pop-2) xy col)
+decCellPop (Cell pop xy col) = (Cell (pop - 2) xy (mixColors 1 0.1 col white))
 
 -- find the cell in the colony with the given position
-posToCell :: Colony -> Position -> Cell
-posToCell c p  = if (length x) > 0 then head x else nullCell
-                where x = ( filter (\x -> (cellPos x) == p) c )
+-- posToCell :: Colony -> Position -> Cell
+-- posToCell c p  = if (length x) > 0 then head x else nullCell
+--                 where x = ( filter (\x -> (cellPos x) == p) c )
+
+matchPositions :: Colony -> [Position] -> [Cell]
+matchPositions [] _ = []
+matchPositions _  [] = []
+matchPositions colony positions = concatMap (\p -> (filter (\c -> cellPos c == p) colony)) positions
 
 -- which cells in colony are neighbors of the given single cell
 adjCells :: Colony -> Cell -> [Cell]
 adjCells [] _ = []
---adjCells col c = []
-adjCells col c = filter (\x -> not (x == nullCell)) (map (posToCell col) (neighbours grid (cellPos c)))
- 
+adjCells colony cell = matchPositions colony (neighbours grid (cellPos cell))
+-- adjCells colony cell = filter (\x -> not (x == nullCell)) (map (posToCell colony) (neighbours grid (cellPos cell)))
 
 -- returns first colony's cells that are adjacent to a cell in the second colony
-getFightCells :: Colony -> Colony -> Colony
+getFightCells :: Colony -> Colony -> [Cell]
 getFightCells [] _ = []
 getFightCells p [] = []
---getFightCells p e = e
-getFightCells p e  = filter (\x -> elem x (adjCells p x)) e
+getFightCells p e = concatMap (\x -> adjCells p x) e
+-- getFightCells p e  = filter (\x -> elem x (adjCells p x)) e
 
 -- take list of ALL of one colony's cells, list of cells that are fighting
 -- returns list of all colony cells after being decremented/killing cells
 decCells :: Colony -> Colony -> Colony
 decCells [] _ = []
-decCells c [] = c
---decCells c f = c
-decCells c f  = map decCellPop (filter (\x -> elem x f) c) ++ (c \\ f)
+decCells colony [] = colony
+decCells colony fightCells  = map decCellPop (filter (\x -> elem x fightCells) colony) ++ (colony \\ fightCells)
 
 -- remove all cells that have population <1
 killCells :: Colony -> Colony
@@ -188,19 +188,18 @@ killCells c = filter (\x -> (cellPop x) > 0) c
 -- takes player and enemy colonies and returns a tuple of both colonies
 -- decrement population and/or remove from colony (kill) cells that are fighting 
 -- (adjacent cells from differing colonies)
-fight :: Colony -> Colony -> (Colony, Colony)
-fight [] [] = ([],[])
-fight p [] = (p,[])
-fight [] e = ([],e)
---fight p e = (p,e)
---fight p e = ((decCells p e), (decCells e p))
-fight p e = (killCells (decCells p (getFightCells p e)), killCells (decCells e (getFightCells e p)))
+fight :: Colony -> Colony -> StdGen -> (Colony, Colony)
+fight [] [] _ = ([],[])
+fight p [] _ = (p,[])
+fight [] e _ = ([],e)
+fight p e gen = (killCells (decCells p (getFightCells p e)), killCells (decCells e (getFightCells e p)))
 
 -- take a previous game state and return the new game state after given time
 simulateBoard :: Float -> (Board -> Board)
 simulateBoard _ (GameOver t) = (GameOver t)
 simulateBoard timeStep (Play colonyP colonyE gen)
-    | (length colonyP) + (length colonyE) >= (gridLength * gridLength) = GameOver (
+    -- | (length colonyP) + (length colonyE) >= (gridLength * gridLength) = GameOver (
+    | length colonyP > 500 = GameOver (
         if (length colonyP) > (length colonyE) 
             then "Player Wins: " ++ (show (length colonyP)) ++ " cells"
             else "Enemy Wins: " ++ (show (length colonyE)) ++ " cells"
@@ -208,11 +207,9 @@ simulateBoard timeStep (Play colonyP colonyE gen)
     | otherwise = Play 
                   (fst f)
                   (snd f)
-                  --(fullUpdate colonyP colonyE colorP genP)
-                  --(fullUpdate colonyE colonyP colorE genE)
                   genNew
     where
-        f = (fight (fullUpdate colonyP colonyE colorP genP) (fullUpdate colonyE colonyP colorE genE))
+        f = (fight (fullUpdate colonyP colonyE colorP genP) (fullUpdate colonyE colonyP colorE genE) genThis)
         (genThis, genNew) = split gen
         (genP, genE) = split genThis
         fullUpdate c1 c2 colr g = (growColony (updateCells c1) c2 colr g)
@@ -283,7 +280,7 @@ main
  = do   gen <- getStdGen
         play (InWindow "Grid" (winSize, winSize) (0, 0))     -- window positioned in center
              white
-             10
+             4
              (initialBoard gen)
              drawBoard
              handleEvents
