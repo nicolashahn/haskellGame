@@ -93,7 +93,8 @@ grow :: Colony -> [Maybe Position] -> Color -> Colony
 grow [] _ _ = []
 grow _ [] _ = []
 grow (c@(Cell pop xy colr):cs) (Just p:ps) colrNew
-    = (Cell 2 p colrNew) : (Cell (pop - (1)) xy colr) : grow cs ps colr
+    -- = (Cell 1 p colrNew) : (Cell (pop - 1) xy colr) : grow cs ps colr
+    = (Cell 1 p colrNew) : (Cell (pop - 4) xy colr) : grow cs ps colr
 grow (c:cs) (Nothing:ps) colrNew
     = c : grow cs ps colrNew
 
@@ -203,7 +204,12 @@ simulateBoard :: Float -> (Board -> Board)
 simulateBoard _ (GameOver t) = (GameOver t)
 simulateBoard timeStep (Play colonyP colonyE gen)
     -- | (length colonyP) + (length colonyE) >= (gridLength * gridLength) = GameOver (
-    | length colonyP > 300 = GameOver (
+    | length colonyP < 1 = GameOver (
+        if (length colonyP) > (length colonyE) 
+            then "Player Wins: " ++ (show (length colonyP)) ++ " cells"
+            else "Enemy Wins: " ++ (show (length colonyE)) ++ " cells"
+        )
+    | length colonyE < 1 = GameOver (
         if (length colonyP) > (length colonyE) 
             then "Player Wins: " ++ (show (length colonyP)) ++ " cells"
             else "Enemy Wins: " ++ (show (length colonyE)) ++ " cells"
@@ -291,7 +297,7 @@ main
  = do   gen <- getStdGen
         play (InWindow "Grid" (winSize, winSize) (0, 0))     -- window positioned in center
              white
-             2
+             10
              (initialBoard gen)
              drawBoard
              handleEvents
