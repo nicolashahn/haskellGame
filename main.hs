@@ -14,7 +14,7 @@ import System.Random.Shuffle
 ------------------------------------------------------------------------------
 
 gridLength :: Int
-gridLength = 15 -- length of grid
+gridLength = 20 -- length of grid
 
 cellSize :: Int
 cellSize = 25 -- cell's pixel height/width
@@ -45,10 +45,11 @@ colorP = green :: Color
 colorE = red :: Color
 
 initPlayerPos :: Position
+-- initPlayerPos = (gridLength `div` 4, gridLength `div` 2)
 initPlayerPos = (gridLength `div` 4, gridLength `div` 4)
 initEnemyPos :: Position
+-- initEnemyPos = (gridLength - (gridLength `div` 4), gridLength `div` 2)
 initEnemyPos = (gridLength - (gridLength `div` 4), gridLength - (gridLength `div` 4))
-
 initialBoard :: StdGen -> Board
 initialBoard gen = Play
             [Cell 1 initPlayerPos green]
@@ -79,7 +80,6 @@ drawBoard (Play cellsP cellsE gen)
 -- Simulation --
 ------------------------------------------------------------------------------
 
--- TODO: shuffle list before checking
 -- pick a position that each bacteria could spawn
 randPos :: [Position] -> Bacteria -> StdGen -> (Maybe Position, StdGen)
 randPos [] _ gen  = (Nothing, gen)
@@ -93,7 +93,7 @@ grow :: Colony -> [Maybe Position] -> Color -> Colony
 grow [] _ _ = []
 grow _ [] _ = []
 grow (c@(Cell pop xy colr):cs) (Just p:ps) colrNew
-    = (Cell 1 p colrNew) : (Cell (pop - (1)) xy colr) : grow cs ps colr
+    = (Cell 2 p colrNew) : (Cell (pop - (1)) xy colr) : grow cs ps colr
 grow (c:cs) (Nothing:ps) colrNew
     = c : grow cs ps colrNew
 
@@ -105,7 +105,6 @@ pickSpawns (p:ps) (b:bs) gen
     where
         (spawnPos, newGen) = if (length p) > 0 then randPos (shuffle' p (length p) gen) b gen
                                                 else randPos [] b gen
-
 
 
 -- list of list of places bacteria could spawn. each list within a list corresponds to an
@@ -140,21 +139,18 @@ updateCells :: Colony -> Colony
 updateCells [] = []
 updateCells cells = map upCellPop cells
 
-
 ----------------------------
 --  fighting
 ----------------------------
 
 -- opposite of upCellPop
--- color changes  for debug purposes
-decCellPop :: Cell -> Cell
-decCellPop (Cell pop xy col) = (Cell (pop - 2) xy (mixColors 1 0.1 col white))
+-- color changes for debug purposes
+decCellPop :: (Cell, Int) -> Cell
+decCellPop ((Cell pop xy col), r) 
+    | r > pop =  (Cell (pop - 1) xy (mixColors 1 0.2 col white))
+    | otherwise = (Cell pop xy (mixColors 1 0.2 col blue))
 
--- find the cell in the colony with the given position
--- posToCell :: Colony -> Position -> Cell
--- posToCell c p  = if (length x) > 0 then head x else nullCell
---                 where x = ( filter (\x -> (cellPos x) == p) c )
-
+-- returns list of cells from a colony that match the list of positions
 matchPositions :: Colony -> [Position] -> [Cell]
 matchPositions [] _ = []
 matchPositions _  [] = []
@@ -164,27 +160,31 @@ matchPositions colony positions = concatMap (\p -> (filter (\c -> cellPos c == p
 adjCells :: Colony -> Cell -> [Cell]
 adjCells [] _ = []
 adjCells colony cell = matchPositions colony (neighbours grid (cellPos cell))
--- adjCells colony cell = filter (\x -> not (x == nullCell)) (map (posToCell colony) (neighbours grid (cellPos cell)))
 
--- returns first colony's cells that are adjacent to a cell in the second colony
-getFightCells :: Colony -> Colony -> [Cell]
+-- returns a list of colony's cells and the number of opponent cells they're adjacent to 
+getFightCells :: Colony -> Colony -> [(Cell, Int)]
 getFightCells [] _ = []
-getFightCells p [] = []
-getFightCells p e = concatMap (\x -> adjCells p x) e
--- getFightCells p e  = filter (\x -> elem x (adjCells p x)) e
+getFightCells _ [] = []
+getFightCells colony opponent = nub $ map (\x -> (x, freq x adjList)) adjList
+    where
+        adjList = concatMap (\x -> adjCells colony x) opponent
 
 -- take list of ALL of one colony's cells, list of cells that are fighting
 -- returns list of all colony cells after being decremented/killing cells
-decCells :: Colony -> Colony -> Colony
-decCells [] _ = []
-decCells colony [] = colony
-decCells colony fightCells  = map decCellPop (filter (\x -> elem x fightCells) colony) ++ (colony \\ fightCells)
+decCells :: Colony -> [(Cell, Int)] -> StdGen -> Colony
+decCells [] _ _ = []
+decCells colony [] _ = colony
+decCells colony fightCells gen  = map decCellPop fightCellsUpdate ++ (colony \\ c)
+    where
+        randNums = take (length fightCells) $ randomRs (1, 10) gen :: [Int]
+        fightCellsUpdate = zip c $ zipWith (+) randNums $ n 
+        (c, n) = unzip fightCells
 
--- remove all cells that have population <1
+-- remove all cells that have population < 1
 killCells :: Colony -> Colony
 killCells [] = []
 killCells c = filter (\x -> (cellPop x) > 0) c
-
+--
 -- takes player and enemy colonies and returns a tuple of both colonies
 -- decrement population and/or remove from colony (kill) cells that are fighting 
 -- (adjacent cells from differing colonies)
@@ -192,14 +192,18 @@ fight :: Colony -> Colony -> StdGen -> (Colony, Colony)
 fight [] [] _ = ([],[])
 fight p [] _ = (p,[])
 fight [] e _ = ([],e)
-fight p e gen = (killCells (decCells p (getFightCells p e)), killCells (decCells e (getFightCells e p)))
+fight p e gen = (killCells (decCells p fightCellsP genP), killCells (decCells e fightCellsE genE))
+    where
+        fightCellsP = getFightCells p e
+        fightCellsE = getFightCells e p
+        (genP, genE) = split gen
 
 -- take a previous game state and return the new game state after given time
 simulateBoard :: Float -> (Board -> Board)
 simulateBoard _ (GameOver t) = (GameOver t)
 simulateBoard timeStep (Play colonyP colonyE gen)
     -- | (length colonyP) + (length colonyE) >= (gridLength * gridLength) = GameOver (
-    | length colonyP > 500 = GameOver (
+    | length colonyP > 300 = GameOver (
         if (length colonyP) > (length colonyE) 
             then "Player Wins: " ++ (show (length colonyP)) ++ " cells"
             else "Enemy Wins: " ++ (show (length colonyE)) ++ " cells"
@@ -232,6 +236,13 @@ handleEvents _ board = board  -- all other possible events
 ------------------------------------------------------------------------------
 -- Helper functions --
 ------------------------------------------------------------------------------
+-- Get frequency of element in a list
+freq :: Eq a => a -> [a] -> Int
+freq x [] = 0
+freq x (y:ys)
+    | x == y    = 1 + (freq x ys)
+    | otherwise = freq x ys
+
 -- Make coordinates correct bc gloss sets origin at center
 getC :: Int -> Float
 getC x = ((cellFloat) * (fromIntegral x)) - ((winFloat) / 2) + ((cellFloat) / 2)
@@ -280,7 +291,7 @@ main
  = do   gen <- getStdGen
         play (InWindow "Grid" (winSize, winSize) (0, 0))     -- window positioned in center
              white
-             4
+             2
              (initialBoard gen)
              drawBoard
              handleEvents
