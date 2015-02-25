@@ -14,7 +14,7 @@ import System.Random.Shuffle
 ------------------------------------------------------------------------------
 
 gridLength :: Int
-gridLength = 25 -- length of grid
+gridLength = 20 -- length of grid
 
 cellSize :: Int
 cellSize = 25 -- cell's pixel height/width
@@ -66,8 +66,8 @@ drawColony cells = pictures [makeSquare x y col <> showNum n x y
 
 drawBoard :: Board -> Picture
 drawBoard (GameOver t)
-    = scale 0.3 0.3
-    $ translate (-winFloat + 50 ) (0.0)
+    = scale 0.2 0.2
+    $ translate (-winFloat + (cellFloat * 2) ) (0.0)
     $ color red
     $ text t
 
@@ -297,7 +297,7 @@ main
  = do   gen <- getStdGen
         play (InWindow "Grid" (winSize, winSize) (0, 0))     -- window positioned in center
              white
-             10
+             20
              (initialBoard gen)
              drawBoard
              handleEvents
