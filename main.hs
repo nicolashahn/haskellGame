@@ -92,11 +92,10 @@ randPos (p:ps) b gen
 grow :: Colony -> [Maybe Position] -> Color -> Colony
 grow [] _ _ = []
 grow _ [] _ = []
-grow (c@(Cell pop xy colr):cs) (Just p:ps) colrNew
-    -- = (Cell 1 p colrNew) : (Cell (pop - 1) xy colr) : grow cs ps colr
-    = (Cell 1 p colrNew) : (Cell (pop - 3) xy colr) : grow cs ps colr
-grow (c:cs) (Nothing:ps) colrNew
-    = c : grow cs ps colrNew
+grow (c@(Cell pop xy colr):cs) (Just p:ps) colrBase
+    = (Cell 1 p colrBase) : (Cell (pop - 3) xy colrBase) : grow cs ps colrBase
+grow (c:cs) (Nothing:ps) colrBase
+    = c : grow cs ps colrBase
 
 -- pick position to spawn at every index
 pickSpawns :: [[Position]] -> [Bacteria] -> StdGen -> [Maybe Position]
@@ -106,7 +105,6 @@ pickSpawns (p:ps) (b:bs) gen
     where
         (spawnPos, newGen) = if (length p) > 0 then randPos (shuffle' p (length p) gen) b gen
                                                 else randPos [] b gen
-
 
 -- list of list of places bacteria could spawn. each list within a list corresponds to an
 -- index in the colony that the bacteria would spawn from 
@@ -148,8 +146,8 @@ updateCells cells = map upCellPop cells
 -- color changes for debug purposes
 decCellPop :: (Cell, Int) -> Cell
 decCellPop ((Cell pop xy col), r) 
-    | r > pop =  (Cell (pop - 1) xy (mixColors 1 0.2 col white))
-    | otherwise = (Cell pop xy (mixColors 1 0.2 col blue))
+    | r > pop =  (Cell (pop - 1) xy (mixColors 1 1 col yellow))
+    | otherwise = (Cell pop xy (mixColors 1 1 col yellow))
 
 -- returns list of cells from a colony that match the list of positions
 matchPositions :: Colony -> [Position] -> [Cell]
