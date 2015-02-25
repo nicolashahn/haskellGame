@@ -14,7 +14,7 @@ import System.Random.Shuffle
 ------------------------------------------------------------------------------
 
 gridLength :: Int
-gridLength = 20 -- length of grid
+gridLength = 25 -- length of grid
 
 cellSize :: Int
 cellSize = 25 -- cell's pixel height/width
@@ -46,10 +46,10 @@ colorE = red :: Color
 
 initPlayerPos :: Position
 -- initPlayerPos = (gridLength `div` 4, gridLength `div` 2)
-initPlayerPos = (gridLength `div` 4, gridLength `div` 4)
+initPlayerPos = (gridLength - (gridLength `div` 4), gridLength `div` 2)
 initEnemyPos :: Position
 -- initEnemyPos = (gridLength - (gridLength `div` 4), gridLength `div` 2)
-initEnemyPos = (gridLength - (gridLength `div` 4), gridLength - (gridLength `div` 4))
+initEnemyPos = (gridLength `div` 4, gridLength - (gridLength `div` 2))
 initialBoard :: StdGen -> Board
 initialBoard gen = Play
             [Cell 1 initPlayerPos green]
@@ -94,7 +94,7 @@ grow [] _ _ = []
 grow _ [] _ = []
 grow (c@(Cell pop xy colr):cs) (Just p:ps) colrNew
     -- = (Cell 1 p colrNew) : (Cell (pop - 1) xy colr) : grow cs ps colr
-    = (Cell 1 p colrNew) : (Cell (pop - 4) xy colr) : grow cs ps colr
+    = (Cell 1 p colrNew) : (Cell (pop - 3) xy colr) : grow cs ps colr
 grow (c:cs) (Nothing:ps) colrNew
     = c : grow cs ps colrNew
 
@@ -111,7 +111,7 @@ pickSpawns (p:ps) (b:bs) gen
 -- list of list of places bacteria could spawn. each list within a list corresponds to an
 -- index in the colony that the bacteria would spawn from 
 spawnPotential :: Colony -> Colony -> [[Position]]
-spawnPotential c1 c2 = map (\\ filledCells) adjC 
+spawnPotential c1 c2 = nub (map (\\ filledCells) adjC )
     where filledCells = (colonyPos c1 ++ colonyPos c2)
           adjC = adjPositions (colonyPos c1)
 
