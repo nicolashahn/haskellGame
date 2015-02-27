@@ -15,7 +15,11 @@ import System.Random.Shuffle
 
 gridLength :: Int
 <<<<<<< HEAD
+<<<<<<< HEAD
 gridLength = 25 -- length of grid
+=======
+gridLength = 20 -- length of grid
+>>>>>>> parent of efc4b34... keep track of turns
 =======
 gridLength = 20 -- length of grid
 >>>>>>> parent of efc4b34... keep track of turns
@@ -60,7 +64,10 @@ initialBoard gen = Play
             [Cell 1 initEnemyPos red]
             gen
 <<<<<<< HEAD
+<<<<<<< HEAD
             0
+=======
+>>>>>>> parent of efc4b34... keep track of turns
 =======
 >>>>>>> parent of efc4b34... keep track of turns
 
@@ -171,6 +178,9 @@ updateCells cells baseColor = map (upCellPop baseColor) cells
 updateCells :: Colony -> Colony
 updateCells [] = []
 updateCells cells = map upCellPop cells
+<<<<<<< HEAD
+>>>>>>> parent of efc4b34... keep track of turns
+=======
 >>>>>>> parent of efc4b34... keep track of turns
 
 ----------------------------
@@ -244,6 +254,7 @@ simulateBoard timeStep (Play colonyP colonyE gen)
     | length colonyP < 1 = GameOver (
         if (length colonyP) > (length colonyE) 
 <<<<<<< HEAD
+<<<<<<< HEAD
             then "Player Wins: " ++ (show (length colonyP)) ++ " cells after "++(show turn)++" turns"
             else "Enemy Wins: " ++ (show (length colonyE)) ++ " cells after "++(show turn)++" turns"
         )
@@ -251,6 +262,15 @@ simulateBoard timeStep (Play colonyP colonyE gen)
         if (length colonyP) > (length colonyE) 
             then "Player Wins: " ++ (show (length colonyP)) ++ " cells after "++(show turn)++" turns"
             else "Enemy Wins: " ++ (show (length colonyE)) ++ " cells after "++(show turn)++" turns"
+=======
+            then "Player Wins: " ++ (show (length colonyP)) ++ " cells"
+            else "Enemy Wins: " ++ (show (length colonyE)) ++ " cells"
+        )
+    | length colonyE < 1 = GameOver (
+        if (length colonyP) > (length colonyE) 
+            then "Player Wins: " ++ (show (length colonyP)) ++ " cells"
+            else "Enemy Wins: " ++ (show (length colonyE)) ++ " cells"
+>>>>>>> parent of efc4b34... keep track of turns
 =======
             then "Player Wins: " ++ (show (length colonyP)) ++ " cells"
             else "Enemy Wins: " ++ (show (length colonyE)) ++ " cells"
@@ -266,7 +286,10 @@ simulateBoard timeStep (Play colonyP colonyE gen)
                   (snd f)
                   genNew
 <<<<<<< HEAD
+<<<<<<< HEAD
                   (turn + 1)
+=======
+>>>>>>> parent of efc4b34... keep track of turns
 =======
 >>>>>>> parent of efc4b34... keep track of turns
     where
@@ -282,9 +305,15 @@ handleEvents :: Event -> Board -> Board
 handleEvents _ (GameOver t) = (GameOver t)
 handleEvents (EventKey (MouseButton LeftButton) Down _ _)
 <<<<<<< HEAD
+<<<<<<< HEAD
              (Play cellsP cellsE gen turn)
     | length cellsP >= 2000 = GameOver "Game over"
     | otherwise = Play (Cell 1 (0, 0) blue : (concatMap updateCell cellsP)) (Cell 1 (0, 10) yellow : concatMap updateCell cellsE) gen turn
+=======
+             (Play cellsP cellsE gen)
+    | length cellsP >= 20 = GameOver "Game over"
+    | otherwise = Play (Cell 1 (0, 0) blue : (concatMap updateCell cellsP)) (Cell 1 (0, 10) yellow : concatMap updateCell cellsE) gen
+>>>>>>> parent of efc4b34... keep track of turns
 =======
              (Play cellsP cellsE gen)
     | length cellsP >= 20 = GameOver "Game over"
