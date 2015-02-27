@@ -104,11 +104,19 @@ directPos p b goalPos gen
 grow :: Colony -> [Maybe Position] -> Color -> Colony
 grow [] _ _ = []
 grow _ [] _ = []
+<<<<<<< HEAD
 grow (c@(Cell pop xy colr):cs) (Just p:ps) colrBase
     | colr == colrBase = (Cell 1 p colrBase) : (Cell (pop - 3) xy colrBase) : grow cs ps colrBase
     | otherwise        = (Cell pop xy colrBase) : grow cs ps colrBase
 grow (c@(Cell pop xy colr):cs) (Nothing:ps) colrBase
     = (Cell pop xy colrBase) : grow cs ps colrBase
+=======
+grow (c@(Cell pop xy colr):cs) (Just p:ps) colrNew
+    -- = (Cell 1 p colrNew) : (Cell (pop - 1) xy colr) : grow cs ps colr
+    = (Cell 1 p colrNew) : (Cell (pop - 3) xy colr) : grow cs ps colr
+grow (c:cs) (Nothing:ps) colrNew
+    = c : grow cs ps colrNew
+>>>>>>> parent of dd5abd7... fix color bug
 
 -- pick position to spawn at every index
 pickSpawns :: [[Position]] -> [Bacteria] -> Position -> StdGen -> [Maybe Position]
@@ -120,6 +128,7 @@ pickSpawns (p:ps) (b:bs) avgOppPos gen
         --                                         else randPos [] b gen
         (spawnPos, newGen) = if (length p) > 0 then directPos p b avgOppPos gen
                                                 else (Nothing, gen)
+
 
 -- list of list of places bacteria could spawn. each list within a list corresponds to an
 -- index in the colony that the bacteria would spawn from 
@@ -160,8 +169,8 @@ updateCells cells baseColor = map (upCellPop baseColor) cells
 -- color changes for debug purposes
 decCellPop :: (Cell, Int) -> Cell
 decCellPop ((Cell pop xy col), r) 
-    | r > pop =  (Cell (pop - 1) xy (mixColors 1 1 col yellow))
-    | otherwise = (Cell pop xy (mixColors 1 1 col yellow))
+    | r > pop =  (Cell (pop - 1) xy (mixColors 1 0.2 col white))
+    | otherwise = (Cell pop xy (mixColors 1 0.2 col blue))
 
 -- returns list of cells from a colony that match the list of positions
 matchPositions :: Colony -> [Position] -> [Cell]
