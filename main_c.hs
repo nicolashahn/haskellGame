@@ -14,7 +14,7 @@ import System.Random.Shuffle
 ------------------------------------------------------------------------------
 
 gridLength :: Int
-gridLength = 15 -- length of grid
+gridLength = 25 -- length of grid
 
 cellSize :: Int
 cellSize = 25 -- cell's pixel height/width
@@ -28,13 +28,14 @@ winFloat = fromIntegral winSize
 
 grid = rectSquareGrid gridLength gridLength
 
-data Board = Play Colony Colony StdGen 
+data Board = Play Colony Colony StdGen Turn
           | GameOver String
           deriving (Show)
 
 type Bacteria = Int
 type Position = (Int, Int)
 type Colony = [Cell]
+type Turn = Int
 
 data Cell = Cell Bacteria Position Color
     deriving (Eq, Show)
@@ -55,6 +56,7 @@ initialBoard gen = Play
             [Cell 1 initPlayerPos green]
             [Cell 1 initEnemyPos red]
             gen
+            0
 
 ------------------------------------------------------------------------------
 -- Game state --
@@ -67,11 +69,11 @@ drawColony cells = pictures [makeSquare x y col <> showNum n x y
 drawBoard :: Board -> Picture
 drawBoard (GameOver t)
     = scale 0.2 0.2
-    $ translate (-winFloat + (cellFloat * 2) ) (0.0)
+    $ translate (-winFloat ) (0.0)
     $ color red
     $ text t
 
-drawBoard (Play cellsP cellsE gen) 
+drawBoard (Play cellsP cellsE gen turn) 
     = pictures [printGrid, drawColony cellsP, drawColony cellsE]
         where
         printGrid = pictures (gridSquares $ indices grid)
@@ -183,9 +185,10 @@ decCells colony fightCells gen  = map decCellPop fightCellsUpdate ++ (colony \\ 
 killCells :: Colony -> Colony
 killCells [] = []
 killCells c = if length c > 1
-              then filter (\x -> (cellPop x) < 4) remove0
-              else remove0
-                  where remove0 = (filter (\x -> (cellPop x)> 0) c)
+                then filter (\x -> (cellPop x) < cap) remove0
+                else remove0
+            where remove0 = (filter (\x -> (cellPop x)> 0) c)
+                  cap = if length c > 50 then 3 else 5
 --
 -- takes player and enemy colonies and returns a tuple of both colonies
 -- decrement population and/or remove from colony (kill) cells that are fighting 
@@ -203,22 +206,23 @@ fight p e gen = (killCells (decCells p fightCellsP genP), killCells (decCells e 
 -- take a previous game state and return the new game state after given time
 simulateBoard :: Float -> (Board -> Board)
 simulateBoard _ (GameOver t) = (GameOver t)
-simulateBoard timeStep (Play colonyP colonyE gen)
+simulateBoard timeStep (Play colonyP colonyE gen turn)
     -- | (length colonyP) + (length colonyE) >= (gridLength * gridLength) = GameOver (
     | length colonyP < 1 = GameOver (
         if (length colonyP) > (length colonyE) 
-            then "Player Wins: " ++ (show (length colonyP)) ++ " cells"
-            else "Enemy Wins: " ++ (show (length colonyE)) ++ " cells"
+            then "Player Wins: " ++ (show (length colonyP)) ++ " cells after "++(show turn)++" turns"
+            else "Enemy Wins: " ++ (show (length colonyE)) ++ " cells after "++(show turn)++" turns"
         )
     | length colonyE < 1 = GameOver (
         if (length colonyP) > (length colonyE) 
-            then "Player Wins: " ++ (show (length colonyP)) ++ " cells"
-            else "Enemy Wins: " ++ (show (length colonyE)) ++ " cells"
+            then "Player Wins: " ++ (show (length colonyP)) ++ " cells after "++(show turn)++" turns"
+            else "Enemy Wins: " ++ (show (length colonyE)) ++ " cells after "++(show turn)++" turns"
         )
     | otherwise = Play 
                   (fst f)
                   (snd f)
                   genNew
+                  (turn + 1)
     where
         f = (fight (fullUpdate colonyP colonyE colorP genP) (fullUpdate colonyE colonyP colorE genE) genThis)
         (genThis, genNew) = split gen
@@ -231,9 +235,9 @@ simulateBoard timeStep (Play colonyP colonyE gen)
 handleEvents :: Event -> Board -> Board
 handleEvents _ (GameOver t) = (GameOver t)
 handleEvents (EventKey (MouseButton LeftButton) Down _ _)
-             (Play cellsP cellsE gen)
+             (Play cellsP cellsE gen turn)
     | length cellsP >= 2000 = GameOver "Game over"
-    | otherwise = Play (Cell 1 (0, 0) blue : (concatMap updateCell cellsP)) (Cell 1 (0, 10) yellow : concatMap updateCell cellsE) gen
+    | otherwise = Play (Cell 1 (0, 0) blue : (concatMap updateCell cellsP)) (Cell 1 (0, 10) yellow : concatMap updateCell cellsE) gen turn
     where
         updateCell :: Cell -> [Cell]
         updateCell c@(Cell b pos col) = [Cell (b + 1) ((fst pos + 1), snd pos) col]
