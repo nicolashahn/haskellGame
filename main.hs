@@ -1,6 +1,4 @@
 -- main.hs
--- Nicolas Hahn
--- Ashley Rocha
 
 import Data.Monoid ((<>))
 import Graphics.Gloss
@@ -11,15 +9,12 @@ import Data.List
 import System.Random
 import System.Random.Shuffle
 
-
-
-
 ------------------------------------------------------------------------------
 -- Initialization --
 ------------------------------------------------------------------------------
 
 gridLength :: Int
-gridLength = 28 -- length of grid
+gridLength = 25 -- length of grid
 
 cellSize :: Int
 cellSize = 25 -- cell's pixel height/width
@@ -63,10 +58,6 @@ initialBoard gen = Play
             gen
             0
 
-
-
-
-
 ------------------------------------------------------------------------------
 -- Game state --
 ------------------------------------------------------------------------------
@@ -78,7 +69,7 @@ drawColony cells = pictures [makeSquare x y col <> showNum n x y
 drawBoard :: Board -> Picture
 drawBoard (GameOver t)
     = scale 0.2 0.2
-    $ translate (-winFloat + (cellFloat * 2) ) (0.0)
+    $ translate (-winFloat ) (0.0)
     $ color red
     $ text t
 
@@ -87,44 +78,53 @@ drawBoard (Play cellsP cellsE gen turn)
         where
         printGrid = pictures (gridSquares $ indices grid)
 
-
-
-
-
 ------------------------------------------------------------------------------
 -- Simulation --
 ------------------------------------------------------------------------------
 
 -- pick a position that each bacteria could spawn
-randPos :: [Position] -> Bacteria -> StdGen -> (Maybe Position, StdGen)
-randPos [] _ gen  = (Nothing, gen)
-randPos (p:ps) b gen 
-    | b > randNum = (Just p, newGen)
-    | otherwise = randPos ps b newGen
-    where (randNum, newGen) = randomR(1, 9) gen 
+-- randPos :: [Position] -> Bacteria -> StdGen -> (Maybe Position, StdGen)
+-- randPos [] _ gen  = (Nothing, gen)
+-- randPos (p:ps) b gen 
+--     | b > randNum = (Just p, newGen)
+--     | otherwise = randPos ps b newGen
+--     where (randNum, newGen) = randomR(1, 9) gen 
+
+
+directPos :: [Position] -> Bacteria -> Position -> StdGen -> (Maybe Position, StdGen)
+directPos [] _ _ gen = (Nothing, gen)
+directPos p b goalPos gen
+    | b > randNum = (Just (head direction), newGen)
+    -- | b > randNum = (Just (head $ shuffle' direction (length direction) gen), newGen)
+    | otherwise = (Nothing, gen)
+    where (randNum, newGen) = randomR(1, 9) gen
+          direction = filter (\x -> distance grid goalPos x == minimum (map (distance grid goalPos) p))p
 
 -- possibly grow cells and update existing cells
 grow :: Colony -> [Maybe Position] -> Color -> Colony
 grow [] _ _ = []
 grow _ [] _ = []
 grow (c@(Cell pop xy colr):cs) (Just p:ps) colrBase
-    = (Cell 1 p colrBase) : (Cell (pop - 3) xy colrBase) : grow cs ps colrBase
-grow (c:cs) (Nothing:ps) colrBase
-    = c : grow cs ps colrBase
+    | colr == colrBase = (Cell 1 p colrBase) : (Cell (pop - 3) xy colrBase) : grow cs ps colrBase
+    | otherwise        = (Cell pop xy colrBase) : grow cs ps colrBase
+grow (c@(Cell pop xy colr):cs) (Nothing:ps) colrBase
+    = (Cell pop xy colrBase) : grow cs ps colrBase
 
 -- pick position to spawn at every index
-pickSpawns :: [[Position]] -> [Bacteria] -> StdGen -> [Maybe Position]
-pickSpawns [] _ _ = []
-pickSpawns (p:ps) (b:bs) gen 
-    = spawnPos : pickSpawns ps bs newGen
+pickSpawns :: [[Position]] -> [Bacteria] -> Position -> StdGen -> [Maybe Position]
+pickSpawns [] _ _ _ = []
+pickSpawns (p:ps) (b:bs) avgOppPos gen 
+    = spawnPos : pickSpawns ps bs avgOppPos newGen
     where
-        (spawnPos, newGen) = if (length p) > 0 then randPos (shuffle' p (length p) gen) b gen
-                                                else randPos [] b gen
+        -- (spawnPos, newGen) = if (length p) > 0 then randPos (shuffle' p (length p) gen) b gen
+        --                                         else randPos [] b gen
+        (spawnPos, newGen) = if (length p) > 0 then directPos p b avgOppPos gen
+                                                else (Nothing, gen)
 
 -- list of list of places bacteria could spawn. each list within a list corresponds to an
 -- index in the colony that the bacteria would spawn from 
 spawnPotential :: Colony -> Colony -> [[Position]]
-spawnPotential c1 c2 = nub (map (\\ filledCells) adjC )
+spawnPotential c1 c2 = (map (\\ filledCells) adjC )
     where filledCells = (colonyPos c1 ++ colonyPos c2)
           adjC = adjPositions (colonyPos c1)
 
@@ -136,26 +136,21 @@ adjPositions ps = map (neighbours grid) ps
 
 -- increases size of colony
 growColony :: Colony -> Colony -> Color -> StdGen -> Colony 
-growColony c1 c2 colr gen 
-    = grow c1 chosenSpawns colr
+growColony c1 c2 colr gen = grow c1 chosenSpawns colr
     where 
-        chosenSpawns = ( pickSpawns (spawnPotential c1 c2) popList gen )
+        chosenSpawns = ( pickSpawns (spawnPotential c1 c2) popList (avgColonyPos c2) gen )
         popList = (map cellPop c1)
 --
 -- updates population of one cell 
-upCellPop :: Cell -> Cell
-upCellPop c@(Cell pop xy col) = if pop < 10
-                              then (Cell (pop + (1)) xy col)
-                              else c
+upCellPop :: Color -> Cell -> Cell
+upCellPop baseColor c@(Cell pop xy col) = if pop < 10 && col == baseColor
+                                          then (Cell (pop + (1)) xy col)
+                                          else c
 
 -- update list of bacteria's population
-updateCells :: Colony -> Colony
-updateCells [] = []
-updateCells cells = map upCellPop cells
-
-
-
-
+updateCells :: Colony -> Color -> Colony
+updateCells [] _ = []
+updateCells cells baseColor = map (upCellPop baseColor) cells
 
 ----------------------------
 --  fighting
@@ -201,7 +196,11 @@ decCells colony fightCells gen  = map decCellPop fightCellsUpdate ++ (colony \\ 
 -- remove all cells that have population < 1
 killCells :: Colony -> Colony
 killCells [] = []
-killCells c = filter (\x -> (cellPop x) > 0) c
+killCells c = if length killOld > 0 then killOld
+                else remove0
+            where remove0 = (filter (\x -> (cellPop x)> 0) c)
+                  killOld = filter(\x -> (cellPop x) < cap) remove0
+                  cap = if length c > 50 then 3 else 5
 --
 -- takes player and enemy colonies and returns a tuple of both colonies
 -- decrement population and/or remove from colony (kill) cells that are fighting 
@@ -223,24 +222,24 @@ simulateBoard timeStep (Play colonyP colonyE gen turn)
     -- | (length colonyP) + (length colonyE) >= (gridLength * gridLength) = GameOver (
     | length colonyP < 1 = GameOver (
         if (length colonyP) > (length colonyE) 
-            then "Player Wins: " ++ (show (length colonyP)) ++ " cells at turn " ++ (show turn) 
-            else "Enemy Wins: " ++ (show (length colonyE)) ++ " cells at turn " ++ (show turn)
+            then "Player Wins: " ++ (show (length colonyP)) ++ " cells after "++(show turn)++" turns"
+            else "Enemy Wins: " ++ (show (length colonyE)) ++ " cells after "++(show turn)++" turns"
         )
     | length colonyE < 1 = GameOver (
         if (length colonyP) > (length colonyE) 
-            then "Player Wins: " ++ (show (length colonyP)) ++ " cells at turn " ++ (show turn)
-            else "Enemy Wins: " ++ (show (length colonyE)) ++ " cells at turn " ++ (show turn)
+            then "Player Wins: " ++ (show (length colonyP)) ++ " cells after "++(show turn)++" turns"
+            else "Enemy Wins: " ++ (show (length colonyE)) ++ " cells after "++(show turn)++" turns"
         )
     | otherwise = Play 
                   (fst f)
                   (snd f)
                   genNew
-                  (turn + 1 )
+                  (turn + 1)
     where
         f = (fight (fullUpdate colonyP colonyE colorP genP) (fullUpdate colonyE colonyP colorE genE) genThis)
         (genThis, genNew) = split gen
         (genP, genE) = split genThis
-        fullUpdate c1 c2 colr g = (growColony (updateCells c1) c2 colr g)
+        fullUpdate c1 c2 colr g = (growColony (updateCells c1 colr) c2 colr g)
 
 ------------------------------------------------------------------------------
 -- Event handling --
@@ -249,16 +248,13 @@ handleEvents :: Event -> Board -> Board
 handleEvents _ (GameOver t) = (GameOver t)
 handleEvents (EventKey (MouseButton LeftButton) Down _ _)
              (Play cellsP cellsE gen turn)
-    | length cellsP >= 20 = GameOver "Game over"
+    | length cellsP >= 2000 = GameOver "Game over"
     | otherwise = Play (Cell 1 (0, 0) blue : (concatMap updateCell cellsP)) (Cell 1 (0, 10) yellow : concatMap updateCell cellsE) gen turn
     where
         updateCell :: Cell -> [Cell]
         updateCell c@(Cell b pos col) = [Cell (b + 1) ((fst pos + 1), snd pos) col]
 
 handleEvents _ board = board  -- all other possible events
-
-
-
 
 ------------------------------------------------------------------------------
 -- Helper functions --
@@ -295,6 +291,12 @@ showNum i x y
     $ color black
     $ text (show i)
 
+
+-- gets the average position (middle of the clump) of a colony 
+avgColonyPos :: Colony -> Position 
+avgColonyPos cs = (div (foldl (\a (x,_) -> x + a) 0 (colonyPos cs)) (length cs), 
+                   div (foldl (\a (_,y) -> y + a) 0 (colonyPos cs)) (length cs))
+
 -- Returns list of positions for colony
 colonyPos :: [Cell] -> [Position]
 colonyPos cells = map cellPos cells
@@ -318,7 +320,7 @@ main
  = do   gen <- getStdGen
         play (InWindow "Grid" (winSize, winSize) (0, 0))     -- window positioned in center
              white
-             20
+             20 
              (initialBoard gen)
              drawBoard
              handleEvents
