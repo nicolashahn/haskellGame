@@ -28,11 +28,7 @@ winFloat = fromIntegral winSize
 
 grid = rectSquareGrid gridLength gridLength
 
-<<<<<<< HEAD
 data Board = Play Colony Colony StdGen Turn Cursor
-=======
-data Board = Play Colony Colony StdGen Turn
->>>>>>> origin/master
           | GameOver String
           deriving (Show)
 
@@ -40,10 +36,7 @@ type Bacteria = Int
 type Position = (Int, Int)
 type Colony = [Cell]
 type Turn = Int
-<<<<<<< HEAD
 type Cursor = Position
-=======
->>>>>>> origin/master
 
 data Cell = Cell Bacteria Position Color
     deriving (Eq, Show)
@@ -65,10 +58,7 @@ initialBoard gen = Play
             [Cell 1 initEnemyPos red]
             gen
             0
-<<<<<<< HEAD
             initPlayerPos
-=======
->>>>>>> origin/master
 
 ------------------------------------------------------------------------------
 -- Game state --
@@ -78,11 +68,8 @@ initialBoard gen = Play
 drawColony cells = pictures [makeSquare x y col <> showNum n x y
                             | Cell n (x, y) col <- cells]
 
-<<<<<<< HEAD
 drawCursor (x,y) = makeSquare x y blue
 
-=======
->>>>>>> origin/master
 drawBoard :: Board -> Picture
 drawBoard (GameOver t)
     = scale 0.2 0.2
@@ -90,13 +77,8 @@ drawBoard (GameOver t)
     $ color red
     $ text t
 
-<<<<<<< HEAD
 drawBoard (Play cellsP cellsE gen turn cursor) 
     = pictures [printGrid, drawColony cellsP, drawColony cellsE, drawCursor cursor]
-=======
-drawBoard (Play cellsP cellsE gen turn) 
-    = pictures [printGrid, drawColony cellsP, drawColony cellsE]
->>>>>>> origin/master
         where
         printGrid = pictures (gridSquares $ indices grid)
 
@@ -115,28 +97,20 @@ randPos (p:ps) b gen
 
 directPos :: [Position] -> Bacteria -> Position -> StdGen -> (Maybe Position, StdGen)
 directPos [] _ _ gen = (Nothing, gen)
-<<<<<<< HEAD
 directPos p b goalPos gen
-=======
-directPos p b goalPos2 gen
->>>>>>> origin/master
     -- | b > randNum = (Just (head direction), newGen)
     | b > randNum = (Just (head $ shuffle' direction (length direction) gen), newGen)
     | otherwise = (Nothing, gen)
     where (randNum, newGen) = randomR(1, 9) gen
           direction = filter (\x -> distance grid goalPos x == minimum (map (distance grid goalPos) p))p
-<<<<<<< HEAD
           --goalPos = (0, 0)
-=======
-          goalPos = (0, 0)
->>>>>>> origin/master
 
 -- possibly grow cells and update existing cells
 grow :: Colony -> [Maybe Position] -> Color -> Colony
 grow [] _ _ = []
 grow _ [] _ = []
 grow (c@(Cell pop xy colr):cs) (Just p:ps) colrBase
-    | colr == colrBase = (Cell 1 p colrBase) : (Cell (pop - 4) xy colrBase) : grow cs ps colrBase
+    | colr == colrBase = (Cell 1 p colrBase) : (Cell (pop - 3) xy colrBase) : grow cs ps colrBase
     | otherwise        = (Cell pop xy colrBase) : grow cs ps colrBase
 grow (c@(Cell pop xy colr):cs) (Nothing:ps) colrBase
     = (Cell pop xy colrBase) : grow cs ps colrBase
@@ -144,7 +118,6 @@ grow (c@(Cell pop xy colr):cs) (Nothing:ps) colrBase
 -- pick position to spawn at every index
 pickSpawns :: [[Position]] -> [Bacteria] -> Position -> StdGen -> [Maybe Position]
 pickSpawns [] _ _ _ = []
-<<<<<<< HEAD
 pickSpawns positions@(p:ps) (b:bs) cursor gen 
     = spawnPos : pickSpawns ps bs cursor newGen
       where 
@@ -155,19 +128,8 @@ pickSpawns positions@(p:ps) (b:bs) cursor gen
 -- list of list of places bacteria could spawn. each list within a list corresponds to an
 -- index in the colony that the bacteria would spawn from 
 
-=======
-pickSpawns positions@(p:ps) (b:bs) avgOppPos gen 
-    = spawnPos : pickSpawns ps bs avgOppPos newGen
-    where
-       (spawnPos, newGen)
-            | length positions > 20 = directPos p b avgOppPos gen
-            | otherwise = if length p > 0 then randPos (shuffle' p (length p) gen) b gen else (Nothing, gen)
-            -- | otherwise = (Nothing, gen)
--- list of list of places bacteria could spawn. each list within a list corresponds to an
--- index in the colony that the bacteria would spawn from 
->>>>>>> origin/master
 spawnPotential :: Colony -> Colony -> [[Position]]
-spawnPotential c1 c2 = (map (\\ filledCells) adjC )
+spawnPotential c1 c2 = nub (map (\\ filledCells) adjC )
     where filledCells = (colonyPos c1 ++ colonyPos c2)
           adjC = adjPositions (colonyPos c1)
 
@@ -178,17 +140,10 @@ adjPositions [] = []
 adjPositions ps = map (neighbours grid) ps
 
 -- increases size of colony
-<<<<<<< HEAD
 growColony :: Colony -> Colony -> Color -> StdGen -> Cursor -> Colony 
 growColony c1 c2 colr gen cursor = grow c1 chosenSpawns colr
     where 
         chosenSpawns = ( pickSpawns (spawnPotential c1 c2) popList cursor gen )
-=======
-growColony :: Colony -> Colony -> Color -> StdGen -> Colony 
-growColony c1 c2 colr gen = grow c1 chosenSpawns colr
-    where 
-        chosenSpawns = ( pickSpawns (spawnPotential c1 c2) popList (avgColonyPos c2) gen )
->>>>>>> origin/master
         popList = (map cellPop c1)
 --
 -- updates population of one cell 
@@ -242,21 +197,23 @@ decCells colony fightCells gen  = map decCellPop fightCellsUpdate ++ (colony \\ 
         randNums = take (length fightCells) $ randomRs (1, 10) gen :: [Int]
         fightCellsUpdate = zip c $ zipWith (+) randNums $ n 
         (c, n) = unzip fightCells
-
+{-}
 -- remove all cells that have population < 1
 killCells :: Colony -> Colony
 killCells [] = []
 killCells c = if length killOld > 0 then killOld
                 else remove0
             where remove0 = (filter (\x -> (cellPop x)> 0) c)
-<<<<<<< HEAD
                   killOld = filter(\x -> (cellPop x) < 9) remove0
                   -- cap = if length c > 70 then 6 else 6
-=======
-                  killOld = filter(\x -> (cellPop x) < 6) remove0
-                  cap = if length c > 70 then 6 else 6
->>>>>>> origin/master
---
+-}
+--old version
+killCells :: Colony -> Colony
+killCells [] = []
+killCells c = (filter (\x -> (cellPop x)> 0) c)
+
+
+
 -- takes player and enemy colonies and returns a tuple of both colonies
 -- decrement population and/or remove from colony (kill) cells that are fighting 
 -- (adjacent cells from differing colonies)
@@ -273,11 +230,7 @@ fight p e gen = (killCells (decCells p fightCellsP genP), killCells (decCells e 
 -- take a previous game state and return the new game state after given time
 simulateBoard :: Float -> (Board -> Board)
 simulateBoard _ (GameOver t) = (GameOver t)
-<<<<<<< HEAD
 simulateBoard timeStep (Play colonyP colonyE gen turn cursor)
-=======
-simulateBoard timeStep (Play colonyP colonyE gen turn)
->>>>>>> origin/master
     -- | (length colonyP) + (length colonyE) >= (gridLength * gridLength) = GameOver (
     | length colonyP < 1 = GameOver (
         if (length colonyP) > (length colonyE) 
@@ -294,58 +247,42 @@ simulateBoard timeStep (Play colonyP colonyE gen turn)
                   (snd f)
                   genNew
                   (turn + 1)
-<<<<<<< HEAD
                   cursor
     where
-        f = (fight (fullUpdate colonyP colonyE colorP genP cursor) (fullUpdate colonyE colonyP colorE genE (0,0)) genThis)
+        f = (fight (fullUpdate colonyP colonyE colorP genP cursor) 
+            (fullUpdate colonyE colonyP colorE genE (avgColonyPos colonyP)) genThis)
         (genThis, genNew) = split gen
         (genP, genE) = split genThis
         fullUpdate c1 c2 colr g cursor = (growColony (updateCells c1 colr) c2 colr g cursor)
-=======
-    where
-        f = (fight (fullUpdate colonyP colonyE colorP genP) (fullUpdate colonyE colonyP colorE genE) genThis)
-        (genThis, genNew) = split gen
-        (genP, genE) = split genThis
-        fullUpdate c1 c2 colr g = (growColony (updateCells c1 colr) c2 colr g)
->>>>>>> origin/master
 
 ------------------------------------------------------------------------------
 -- Event handling --
 ------------------------------------------------------------------------------
 handleEvents :: Event -> Board -> Board
 handleEvents _ (GameOver t) = (GameOver t)
-handleEvents (EventKey (MouseButton LeftButton) Down _ _)
-<<<<<<< HEAD
-             (Play cellsP cellsE gen turn cursor)
-    | length cellsP >= 2000 = GameOver "Game over"
-    | otherwise = Play (Cell 1 (0, 0) blue : (concatMap updateCell cellsP)) (Cell 1 (0, 10) yellow : concatMap updateCell cellsE) gen turn cursor
-    where
-        updateCell :: Cell -> [Cell]
-        updateCell c@(Cell b pos col) = [Cell (b + 1) ((fst pos + 1), snd pos) col]
-handleEvents (EventKey (SpecialKey KeyUp) Down _ _)
+--handleEvents (EventKey (MouseButton LeftButton) Down _ _)
+--             (Play cellsP cellsE gen turn cursor)
+--    | length cellsP >= 2000 = GameOver "Game over"
+--    | otherwise = Play (Cell 1 (0, 0) blue : (concatMap updateCell cellsP)) (Cell 1 (0, 10) yellow : concatMap updateCell cellsE) gen turn cursor
+--    where
+--        updateCell :: Cell -> [Cell]
+--        updateCell c@(Cell b pos col) = [Cell (b + 1) ((fst pos + 1), snd pos) col]
+handleEvents (EventKey (SpecialKey KeyUp) _ _ _)
             (Play cellsP cellsE gen turn (x,y))
             = if y < (gridLength-1) then Play cellsP cellsE gen turn (x,y+1)
               else (Play cellsP cellsE gen turn (x,y))
-handleEvents (EventKey (SpecialKey KeyDown) Down _ _)
+handleEvents (EventKey (SpecialKey KeyDown) _ _ _)
             (Play cellsP cellsE gen turn (x,y))
             = if y > (0) then Play cellsP cellsE gen turn (x,y-1)
               else (Play cellsP cellsE gen turn (x,y))
-handleEvents (EventKey (SpecialKey KeyRight) Down _ _)
+handleEvents (EventKey (SpecialKey KeyRight) _ _ _)
             (Play cellsP cellsE gen turn (x,y))
             = if x < (gridLength-1) then Play cellsP cellsE gen turn (x+1,y)
               else (Play cellsP cellsE gen turn (x,y))
-handleEvents (EventKey (SpecialKey KeyLeft) Down _ _)
+handleEvents (EventKey (SpecialKey KeyLeft) _ _ _)
             (Play cellsP cellsE gen turn (x,y))
             = if x > (0) then Play cellsP cellsE gen turn (x-1,y)
               else (Play cellsP cellsE gen turn (x,y))
-=======
-             (Play cellsP cellsE gen turn)
-    | length cellsP >= 2000 = GameOver "Game over"
-    | otherwise = Play (Cell 1 (0, 0) blue : (concatMap updateCell cellsP)) (Cell 1 (0, 10) yellow : concatMap updateCell cellsE) gen turn
-    where
-        updateCell :: Cell -> [Cell]
-        updateCell c@(Cell b pos col) = [Cell (b + 1) ((fst pos + 1), snd pos) col]
->>>>>>> origin/master
 
 handleEvents _ board = board  -- all other possible events
 
@@ -417,8 +354,4 @@ main
              (initialBoard gen)
              drawBoard
              handleEvents
-<<<<<<< HEAD
              simulateBoard
-=======
-             simulateBoard
->>>>>>> origin/master
