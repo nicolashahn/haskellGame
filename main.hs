@@ -83,29 +83,30 @@ drawBoard (Play cellsP cellsE gen turn)
 ------------------------------------------------------------------------------
 
 -- pick a position that each bacteria could spawn
--- randPos :: [Position] -> Bacteria -> StdGen -> (Maybe Position, StdGen)
--- randPos [] _ gen  = (Nothing, gen)
--- randPos (p:ps) b gen 
---     | b > randNum = (Just p, newGen)
---     | otherwise = randPos ps b newGen
---     where (randNum, newGen) = randomR(1, 9) gen 
+randPos :: [Position] -> Bacteria -> StdGen -> (Maybe Position, StdGen)
+randPos [] _ gen  = (Nothing, gen)
+randPos (p:ps) b gen 
+    | b > randNum = (Just p, newGen)
+    | otherwise = randPos ps b newGen
+    where (randNum, newGen) = randomR(1, 9) gen 
 
 
 directPos :: [Position] -> Bacteria -> Position -> StdGen -> (Maybe Position, StdGen)
 directPos [] _ _ gen = (Nothing, gen)
-directPos p b goalPos gen
-    | b > randNum = (Just (head direction), newGen)
-    -- | b > randNum = (Just (head $ shuffle' direction (length direction) gen), newGen)
+directPos p b goalPos2 gen
+    -- | b > randNum = (Just (head direction), newGen)
+    | b > randNum = (Just (head $ shuffle' direction (length direction) gen), newGen)
     | otherwise = (Nothing, gen)
     where (randNum, newGen) = randomR(1, 9) gen
           direction = filter (\x -> distance grid goalPos x == minimum (map (distance grid goalPos) p))p
+          goalPos = (0, 0)
 
 -- possibly grow cells and update existing cells
 grow :: Colony -> [Maybe Position] -> Color -> Colony
 grow [] _ _ = []
 grow _ [] _ = []
 grow (c@(Cell pop xy colr):cs) (Just p:ps) colrBase
-    | colr == colrBase = (Cell 1 p colrBase) : (Cell (pop - 3) xy colrBase) : grow cs ps colrBase
+    | colr == colrBase = (Cell 1 p colrBase) : (Cell (pop - 4) xy colrBase) : grow cs ps colrBase
     | otherwise        = (Cell pop xy colrBase) : grow cs ps colrBase
 grow (c@(Cell pop xy colr):cs) (Nothing:ps) colrBase
     = (Cell pop xy colrBase) : grow cs ps colrBase
@@ -113,14 +114,13 @@ grow (c@(Cell pop xy colr):cs) (Nothing:ps) colrBase
 -- pick position to spawn at every index
 pickSpawns :: [[Position]] -> [Bacteria] -> Position -> StdGen -> [Maybe Position]
 pickSpawns [] _ _ _ = []
-pickSpawns (p:ps) (b:bs) avgOppPos gen 
+pickSpawns positions@(p:ps) (b:bs) avgOppPos gen 
     = spawnPos : pickSpawns ps bs avgOppPos newGen
     where
-        -- (spawnPos, newGen) = if (length p) > 0 then randPos (shuffle' p (length p) gen) b gen
-        --                                         else randPos [] b gen
-        (spawnPos, newGen) = if (length p) > 0 then directPos p b avgOppPos gen
-                                                else (Nothing, gen)
-
+       (spawnPos, newGen)
+            | length positions > 20 = directPos p b avgOppPos gen
+            | otherwise = if length p > 0 then randPos (shuffle' p (length p) gen) b gen else (Nothing, gen)
+            -- | otherwise = (Nothing, gen)
 -- list of list of places bacteria could spawn. each list within a list corresponds to an
 -- index in the colony that the bacteria would spawn from 
 spawnPotential :: Colony -> Colony -> [[Position]]
@@ -199,8 +199,8 @@ killCells [] = []
 killCells c = if length killOld > 0 then killOld
                 else remove0
             where remove0 = (filter (\x -> (cellPop x)> 0) c)
-                  killOld = filter(\x -> (cellPop x) < cap) remove0
-                  cap = if length c > 50 then 3 else 5
+                  killOld = filter(\x -> (cellPop x) < 6) remove0
+                  cap = if length c > 70 then 6 else 6
 --
 -- takes player and enemy colonies and returns a tuple of both colonies
 -- decrement population and/or remove from colony (kill) cells that are fighting 
