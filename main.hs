@@ -73,7 +73,7 @@ drawCursor (x,y) = makeSquare x y blue
 drawBoard :: Board -> Picture
 drawBoard (GameOver t)
     = scale 0.2 0.2
-    $ translate (-winFloat ) (0.0)
+    $ translate (-2*winFloat ) (0.0)
     $ color red
     $ text t
 
