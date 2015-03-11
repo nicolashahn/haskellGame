@@ -11,9 +11,6 @@ import Data.List
 import System.Random
 import System.Random.Shuffle
 
-
-
-
 ------------------------------------------------------------------------------
 -- Initialization --
 ------------------------------------------------------------------------------
@@ -62,11 +59,7 @@ initialBoard gen = Play
             [Cell 1 initEnemyPos red]
             gen
             0
-
-
-
-
-
+            
 ------------------------------------------------------------------------------
 -- Game state --
 ------------------------------------------------------------------------------
@@ -86,10 +79,6 @@ drawBoard (Play cellsP cellsE gen turn)
     = pictures [printGrid, drawColony cellsP, drawColony cellsE]
         where
         printGrid = pictures (gridSquares $ indices grid)
-
-
-
-
 
 ------------------------------------------------------------------------------
 -- Simulation --
@@ -141,7 +130,7 @@ growColony c1 c2 colr gen
     where 
         chosenSpawns = ( pickSpawns (spawnPotential c1 c2) popList gen )
         popList = (map cellPop c1)
---
+
 -- updates population of one cell 
 upCellPop :: Cell -> Cell
 upCellPop c@(Cell pop xy col) = if pop < 10
@@ -152,10 +141,6 @@ upCellPop c@(Cell pop xy col) = if pop < 10
 updateCells :: Colony -> Colony
 updateCells [] = []
 updateCells cells = map upCellPop cells
-
-
-
-
 
 ----------------------------
 --  fighting
@@ -257,9 +242,6 @@ handleEvents (EventKey (MouseButton LeftButton) Down _ _)
 
 handleEvents _ board = board  -- all other possible events
 
-
-
-
 ------------------------------------------------------------------------------
 -- Helper functions --
 ------------------------------------------------------------------------------
@@ -316,7 +298,7 @@ cellPop (Cell p _ _) = p
 ------------------------------------------------------------------------------
 main
  = do   gen <- getStdGen
-        play (InWindow "Grid" (winSize, winSize) (0, 0))     -- window positioned in center
+        play (InWindow "Bacteria Simulation" (winSize, winSize) (0, 0))     -- window positioned in center
              white
              20
              (initialBoard gen)

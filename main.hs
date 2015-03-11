@@ -86,7 +86,7 @@ drawBoard (Play cellsP cellsE gen turn cursor)
 -- Simulation --
 ------------------------------------------------------------------------------
 
--- pick a position that each bacteria could spawn
+-- pick a position that each bacteria could spawn randomly
 randPos :: [Position] -> Bacteria -> StdGen -> (Maybe Position, StdGen)
 randPos [] _ gen  = (Nothing, gen)
 randPos (p:ps) b gen 
@@ -94,7 +94,7 @@ randPos (p:ps) b gen
     | otherwise = randPos ps b newGen
     where (randNum, newGen) = randomR(1, 9) gen 
 
-
+-- randPos, but grow towards a certain position on the grid
 directPos :: [Position] -> Bacteria -> Position -> StdGen -> (Maybe Position, StdGen)
 directPos [] _ _ gen = (Nothing, gen)
 directPos p b goalPos gen
@@ -122,17 +122,13 @@ pickSpawns positions@(p:ps) (b:bs) cursor gen
     = spawnPos : pickSpawns ps bs cursor newGen
       where 
         (spawnPos, newGen) = directPos p b cursor gen
-            -- | length positions > 10 = directPos p b cursor gen
-            -- | otherwise = if length p > 0 then randPos (shuffle' p (length p) gen) b gen else (Nothing, gen)
-            -- | otherwise = (Nothing, gen)
+
 -- list of list of places bacteria could spawn. each list within a list corresponds to an
 -- index in the colony that the bacteria would spawn from 
-
 spawnPotential :: Colony -> Colony -> [[Position]]
 spawnPotential c1 c2 = nub (map (\\ filledCells) adjC )
     where filledCells = (colonyPos c1 ++ colonyPos c2)
           adjC = adjPositions (colonyPos c1)
-
 
 -- list of list of all neighbors of colony's bacteria 
 adjPositions :: [Position] -> [[Position]]
@@ -145,7 +141,7 @@ growColony c1 c2 colr gen cursor = grow c1 chosenSpawns colr
     where 
         chosenSpawns = ( pickSpawns (spawnPotential c1 c2) popList cursor gen )
         popList = (map cellPop c1)
---
+
 -- updates population of one cell 
 upCellPop :: Color -> Cell -> Cell
 upCellPop baseColor c@(Cell pop xy col) = if pop < 10 && col == baseColor
@@ -197,22 +193,11 @@ decCells colony fightCells gen  = map decCellPop fightCellsUpdate ++ (colony \\ 
         randNums = take (length fightCells) $ randomRs (1, 10) gen :: [Int]
         fightCellsUpdate = zip c $ zipWith (+) randNums $ n 
         (c, n) = unzip fightCells
-{-}
+
 -- remove all cells that have population < 1
 killCells :: Colony -> Colony
 killCells [] = []
-killCells c = if length killOld > 0 then killOld
-                else remove0
-            where remove0 = (filter (\x -> (cellPop x)> 0) c)
-                  killOld = filter(\x -> (cellPop x) < 9) remove0
-                  -- cap = if length c > 70 then 6 else 6
--}
---old version
-killCells :: Colony -> Colony
-killCells [] = []
 killCells c = (filter (\x -> (cellPop x)> 0) c)
-
-
 
 -- takes player and enemy colonies and returns a tuple of both colonies
 -- decrement population and/or remove from colony (kill) cells that are fighting 
@@ -258,15 +243,9 @@ simulateBoard timeStep (Play colonyP colonyE gen turn cursor)
 ------------------------------------------------------------------------------
 -- Event handling --
 ------------------------------------------------------------------------------
+
 handleEvents :: Event -> Board -> Board
 handleEvents _ (GameOver t) = (GameOver t)
---handleEvents (EventKey (MouseButton LeftButton) Down _ _)
---             (Play cellsP cellsE gen turn cursor)
---    | length cellsP >= 2000 = GameOver "Game over"
---    | otherwise = Play (Cell 1 (0, 0) blue : (concatMap updateCell cellsP)) (Cell 1 (0, 10) yellow : concatMap updateCell cellsE) gen turn cursor
---    where
---        updateCell :: Cell -> [Cell]
---        updateCell c@(Cell b pos col) = [Cell (b + 1) ((fst pos + 1), snd pos) col]
 handleEvents (EventKey (SpecialKey KeyUp) _ _ _)
             (Play cellsP cellsE gen turn (x,y))
             = if y < (gridLength-1) then Play cellsP cellsE gen turn (x,y+1)
@@ -321,7 +300,6 @@ showNum i x y
     $ color black
     $ text (show i)
 
-
 -- gets the average position (middle of the clump) of a colony 
 avgColonyPos :: Colony -> Position 
 avgColonyPos cs = (div (foldl (\a (x,_) -> x + a) 0 (colonyPos cs)) (length cs), 
@@ -348,7 +326,7 @@ cellPop (Cell p _ _) = p
 ------------------------------------------------------------------------------
 main
  = do   gen <- getStdGen
-        play (InWindow "Grid" (winSize, winSize) (0, 0))     -- window positioned in center
+        play (InWindow "Bacteria Game" (winSize, winSize) (0, 0))     -- window positioned in center
              white
              20 
              (initialBoard gen)
