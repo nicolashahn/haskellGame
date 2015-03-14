@@ -2,6 +2,13 @@
 Bacterial colony growth game using Haskell + Gloss
 By Nicolas Hahn, Ashley Rocha
 
+To get dependent libraries:
+- Install Cabal (Haskell's package manager)
+- Run:
+    cabal install gloss
+    cabal install grid
+    cabal install random-shuffle
+
 Mechanics:
 - Two bacterial colonies
   - Each colony starts with one cell, population 1
