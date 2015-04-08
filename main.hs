@@ -28,7 +28,7 @@ winFloat = fromIntegral winSize
 
 grid = rectSquareGrid gridLength gridLength
 
-data Board = Play Colony Colony StdGen Turn Cursor
+data Board = Play Colony Colony StdGen Turn Cursor Food
           | GameOver String
           deriving (Show)
 
@@ -37,6 +37,7 @@ type Position = (Int, Int)
 type Colony = [Cell]
 type Turn = Int
 type Cursor = Position
+type Food = (Position, Int)
 
 data Cell = Cell Bacteria Position Color
     deriving (Eq, Show)
@@ -59,6 +60,7 @@ initialBoard gen = Play
             gen
             0
             initPlayerPos
+            ((5,5), 0)
 
 ------------------------------------------------------------------------------
 -- Game state --
@@ -69,6 +71,7 @@ drawColony cells = pictures [makeSquare x y col <> showNum n x y
                             | Cell n (x, y) col <- cells]
 
 drawCursor (x,y) = makeSquare x y blue
+drawFood ((x,y), i) = makeSquare x y yellow
 
 drawBoard :: Board -> Picture
 drawBoard (GameOver t)
@@ -77,14 +80,19 @@ drawBoard (GameOver t)
     $ color red
     $ text t
 
-drawBoard (Play cellsP cellsE gen turn cursor) 
-    = pictures [printGrid, drawColony cellsP, drawColony cellsE, drawCursor cursor]
+drawBoard (Play cellsP cellsE gen turn cursor food) 
+    = pictures [printGrid, drawColony cellsP, drawColony cellsE, drawCursor cursor, drawFood food]
         where
         printGrid = pictures (gridSquares $ indices grid)
 
 ------------------------------------------------------------------------------
 -- Simulation --
 ------------------------------------------------------------------------------
+
+nextFood :: Food -> StdGen -> (Food,StdGen)
+nextFood ((x,y),i) g = if i >= 200 then (((newX,newY),0), newg') else (((x,y),i+1),g)
+                            where (newX, newg) = randomR(1,gridLength) g
+                                  (newY, newg') = randomR(1,gridLength) newg
 
 -- pick a position that each bacteria could spawn randomly
 randPos :: [Position] -> Bacteria -> StdGen -> (Maybe Position, StdGen)
@@ -215,7 +223,7 @@ fight p e gen = (killCells (decCells p fightCellsP genP), killCells (decCells e 
 -- take a previous game state and return the new game state after given time
 simulateBoard :: Float -> (Board -> Board)
 simulateBoard _ (GameOver t) = (GameOver t)
-simulateBoard timeStep (Play colonyP colonyE gen turn cursor)
+simulateBoard timeStep (Play colonyP colonyE gen turn cursor food)
     -- | (length colonyP) + (length colonyE) >= (gridLength * gridLength) = GameOver (
     | length colonyP < 1 = GameOver (
         if (length colonyP) > (length colonyE) 
@@ -230,15 +238,18 @@ simulateBoard timeStep (Play colonyP colonyE gen turn cursor)
     | otherwise = Play 
                   (fst f)
                   (snd f)
-                  genNew
+                  genNew'
                   (turn + 1)
-                  cursor
+                  cursor 
+                  newFood
     where
-        f = (fight (fullUpdate colonyP colonyE colorP genP cursor) 
-            (fullUpdate colonyE colonyP colorE genE (avgColonyPos colonyP)) genThis)
+        f = (fight 
+            (fullUpdate colonyP colonyE colorP genP cursor) 
+            (fullUpdate colonyE colonyP colorE genE (avgColonyPos colonyP) ) genThis)
         (genThis, genNew) = split gen
         (genP, genE) = split genThis
         fullUpdate c1 c2 colr g cursor = (growColony (updateCells c1 colr) c2 colr g cursor)
+        (newFood, genNew') = nextFood food genNew
 
 ------------------------------------------------------------------------------
 -- Event handling --
@@ -247,21 +258,21 @@ simulateBoard timeStep (Play colonyP colonyE gen turn cursor)
 handleEvents :: Event -> Board -> Board
 handleEvents _ (GameOver t) = (GameOver t)
 handleEvents (EventKey (SpecialKey KeyUp) _ _ _)
-            (Play cellsP cellsE gen turn (x,y))
-            = if y < (gridLength-1) then Play cellsP cellsE gen turn (x,y+1)
-              else (Play cellsP cellsE gen turn (x,y))
+            (Play cellsP cellsE gen turn (x,y) food)
+            = if y < (gridLength-1) then Play cellsP cellsE gen turn (x,y+1) food
+              else (Play cellsP cellsE gen turn (x,y) food)
 handleEvents (EventKey (SpecialKey KeyDown) _ _ _)
-            (Play cellsP cellsE gen turn (x,y))
-            = if y > (0) then Play cellsP cellsE gen turn (x,y-1)
-              else (Play cellsP cellsE gen turn (x,y))
+            (Play cellsP cellsE gen turn (x,y) food)
+            = if y > (0) then Play cellsP cellsE gen turn (x,y-1) food
+              else (Play cellsP cellsE gen turn (x,y) food)
 handleEvents (EventKey (SpecialKey KeyRight) _ _ _)
-            (Play cellsP cellsE gen turn (x,y))
-            = if x < (gridLength-1) then Play cellsP cellsE gen turn (x+1,y)
-              else (Play cellsP cellsE gen turn (x,y))
+            (Play cellsP cellsE gen turn (x,y) food)
+            = if x < (gridLength-1) then Play cellsP cellsE gen turn (x+1,y) food
+              else (Play cellsP cellsE gen turn (x,y) food)
 handleEvents (EventKey (SpecialKey KeyLeft) _ _ _)
-            (Play cellsP cellsE gen turn (x,y))
-            = if x > (0) then Play cellsP cellsE gen turn (x-1,y)
-              else (Play cellsP cellsE gen turn (x,y))
+            (Play cellsP cellsE gen turn (x,y) food)
+            = if x > (0) then Play cellsP cellsE gen turn (x-1,y) food
+              else (Play cellsP cellsE gen turn (x,y) food)
 
 handleEvents _ board = board  -- all other possible events
 
